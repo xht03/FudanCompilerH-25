@@ -37,28 +37,6 @@ run: $(MAIN)
 	done; \
 	cd .. > /dev/null 2>&1 
 
-run-xml2astTest: $(XML2ASTTest)
-	cd $(CURDIR)/test && \
-	for file in $$(ls .); do \
-        if [ "$${file##*.}" = "fmj" ]; then \
-            echo "Converting ast-xml to ast (and back to xml!)  $${file%%.*}"; \
-			$(XML2ASTTest) "$${file%%.*}"; \
-			diff "$${file%%.*}.2.ast" "$${file%%.*}.2-debug.ast" ; \
-        fi \
-	done; \
-	cd .. > /dev/null 2>&1 
-
-
-run-ast2xmlTest: $(AST2XMLTest) 
-	cd $(CURDIR)/test && \
-	for file in $$(ls .); do \
-        if [ "$${file##*.}" = "fmj" ]; then \
-            echo "Converting ast to ast-xml $${file%%.*}"; \
-			$(AST2XMLTest) "$${file%%.*}"; \
-        fi \
-	done; \
-	cd .. > /dev/null 2>&1 
-
 run-one: $(MAIN)
 	cd $(CURDIR)/test && \
 	$(MAIN) ${FILE} ; \
