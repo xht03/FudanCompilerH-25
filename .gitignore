@@ -2,7 +2,10 @@
 
 .DS_Store
 build/
-test/*.*.*
+#ignore all test files
+/**/test/*.*
+#except for *.fmj source files
+!/**/test/*.fmj
 .vscode
 
 # Prerequisites
@@ -37,3 +40,6 @@ test/*.*.*
 *.exe
 *.out
 *.app
+
+# vi temp files
+*.swp
