@@ -109,7 +109,7 @@ STMLIST: // empty
     $$ = v;
   }
   ;
-STM: EXP '=' EXP ';'
+STM: ID '=' EXP ';'
   {
 #ifdef DEBUG
     cerr << "Assign" << endl;
