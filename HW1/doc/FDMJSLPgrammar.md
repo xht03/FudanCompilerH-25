@@ -48,7 +48,7 @@ STMLIST: /* empty */
 
 ### STM
 ```
-STM: EXP '=' EXP ';'
+STM: ID '=' EXP ';'
     | RETURN EXP ';';
 ```
 
