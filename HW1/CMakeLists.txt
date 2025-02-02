@@ -6,9 +6,7 @@ project(FDMJ2025 VERSION 0.1)
 
 # 添加包含路径
 include_directories(include/frontend)
-include_directories(include/utils/dsa)
-include_directories(include/utils/dev)
-include_directories(include/utils/printer)
+include_directories(include/ast)
 include_directories(vendor/tinyxml2)
 
 # 递归构建
