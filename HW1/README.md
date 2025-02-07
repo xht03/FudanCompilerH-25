@@ -1,6 +1,6 @@
-# Homework Assignment 1
+**Homework Assignment 1**
 
-## See “Homework Assignment One” on Gitee and eLearning.
+**See more on eLearning.**
 
 **Do the following:**
 
