@@ -6,6 +6,7 @@ build/
 /**/test/*.*
 #except for *.fmj source files
 !/**/test/*.fmj
+!/**/test/*.txt
 .vscode
 
 # Prerequisites
