@@ -90,6 +90,13 @@ ninja
 sudo ninja install
 qemu-arm --version
 ```
+clang-format（代码格式化。默认版本即可）
+
+```bash
+sudo apt-get install clang-format
+find . -name "*.cc" -o -name "*.hh" | xargs clang-format -i
+```
+
 zip（用于打包作业。默认版本即可）
 
 ```bash

@@ -4,13 +4,13 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
-#include "tinyxml2.hh"
 #include "ast2xml.hh"
+#include "tinyxml2.hh"
 
 using namespace std;
 using namespace fdmj;
@@ -18,11 +18,12 @@ using namespace tinyxml2;
 
 static bool _location_flag = true;
 
-XMLDocument* ast2xml(Program *node, bool location_flag) {
+XMLDocument *ast2xml(Program *node, bool location_flag) {
   _location_flag = location_flag;
-  AST2XML v; 
-  v.doc= new XMLDocument();
-  XMLDeclaration *decl = v.doc->NewDeclaration("xml version=\"1.0\" encoding=\"UTF-8\"");
+  AST2XML v;
+  v.doc = new XMLDocument();
+  XMLDeclaration *decl =
+      v.doc->NewDeclaration("xml version=\"1.0\" encoding=\"UTF-8\"");
   v.doc->InsertFirstChild(decl);
 #ifdef DEBUG
   std::cout << "Start Visitor: " << endl;
@@ -37,9 +38,11 @@ static void set_position(XMLElement *el, const Pos *pos) {
     cerr << "Error: No position found on " << el->Name() << endl;
     return;
   }
-  if (!_location_flag) return; //do not set position
-  if (pos->sline == 0 || pos->scolumn == 0 || pos->eline == 0 || pos->ecolumn == 0) {
-    //if any is zero, do not set position
+  if (!_location_flag)
+    return; // do not set position
+  if (pos->sline == 0 || pos->scolumn == 0 || pos->eline == 0 ||
+      pos->ecolumn == 0) {
+    // if any is zero, do not set position
     return;
   }
   el->SetAttribute("bline", to_string(pos->sline).c_str());
@@ -48,58 +51,67 @@ static void set_position(XMLElement *el, const Pos *pos) {
   el->SetAttribute("epos", to_string(pos->ecolumn).c_str());
 }
 
-template<class T>
-XMLElement* visitList(XMLDocument* doc, AST2XML &v, vector<T*> *nl, string tag) {
+template <class T>
+XMLElement *visitList(XMLDocument *doc, AST2XML &v, vector<T *> *nl,
+                      string tag) {
 #ifdef DEBUG
   cout << "visitList: tag = " << tag << endl;
 #endif
   XMLElement *cn = doc->NewElement(tag.c_str());
-  if (nl == nullptr || nl->size() == 0) return cn; //empty list
-  //set_position(cn, new Pos(0,0,0,0)); //no position for any list, using 0,0,0,0
-  for (T* n: *nl) {
+  if (nl == nullptr || nl->size() == 0)
+    return cn; // empty list
+  // set_position(cn, new Pos(0,0,0,0)); //no position for any list, using
+  // 0,0,0,0
+  for (T *n : *nl) {
     if (n == nullptr) {
       cerr << "Error: Null element in " << tag << endl;
       continue;
     }
     n->accept(v);
-    if (v.el != nullptr) cn->InsertEndChild(v.el);
+    if (v.el != nullptr)
+      cn->InsertEndChild(v.el);
   }
   return cn;
 }
 
 void AST2XML::visit(Program *node) {
-    if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-    cout<<"Program"<<endl;
+  cout << "Program" << endl;
 #endif
-    XMLElement* cn = doc->NewElement("Program");
-    set_position(cn, node->getPos());
-    if (node->main == nullptr) {
-        cerr << "Error: No MainMethod found" << endl;
-        el = nullptr;
-        return;
-    }
-    node->main->accept(*this);
-    if (el != nullptr) cn->InsertEndChild(el); //insert the main method
-    el = cn;
-} 
+  XMLElement *cn = doc->NewElement("Program");
+  set_position(cn, node->getPos());
+  if (node->main == nullptr) {
+    cerr << "Error: No MainMethod found" << endl;
+    el = nullptr;
+    return;
+  }
+  node->main->accept(*this);
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the main method
+  el = cn;
+}
 
-void AST2XML::visit(MainMethod *node) { 
-  if (!node) return;
+void AST2XML::visit(MainMethod *node) {
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"MainMethod"<<endl;
+  cout << "MainMethod" << endl;
 #endif
   XMLElement *cn = doc->NewElement("MainMethod");
   set_position(cn, node->getPos());
   XMLElement *cn2 = visitList<Stm>(doc, *this, node->sl, "StmList");
-  if (cn2 != nullptr) cn->InsertEndChild(cn2); //insert the statement
+  if (cn2 != nullptr)
+    cn->InsertEndChild(cn2); // insert the statement
   el = cn;
 }
 
 void AST2XML::visit(Assign *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"Assign"<<endl;
+  cout << "Assign" << endl;
 #endif
   XMLElement *cn = doc->NewElement("Assign");
   set_position(cn, node->getPos());
@@ -109,35 +121,40 @@ cout<<"Assign"<<endl;
     return;
   }
   node->left->accept(*this);
-  if (el != nullptr) cn->InsertEndChild(el); //insert the left expression
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the left expression
   if (node->exp == nullptr) {
     cerr << "Error: No right expression found in an Assign" << endl;
     el = nullptr;
     return;
   }
   node->exp->accept(*this);
-  if (el != nullptr) cn->InsertEndChild(el); //insert the right expression
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the right expression
   el = cn;
 }
 
 void AST2XML::visit(Return *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"Return"<<endl;
+  cout << "Return" << endl;
 #endif
   XMLElement *cn = doc->NewElement("Return");
   set_position(cn, node->getPos());
   if (node->exp != nullptr) {
     node->exp->accept(*this);
-    if (el != nullptr) cn->InsertEndChild(el); //insert the expression
+    if (el != nullptr)
+      cn->InsertEndChild(el); // insert the expression
   }
   el = cn;
 }
 
 void AST2XML::visit(BinaryOp *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"BinaryOp"<<endl;
+  cout << "BinaryOp" << endl;
 #endif
   XMLElement *cn = doc->NewElement("BinaryOp");
   set_position(cn, node->getPos());
@@ -147,7 +164,8 @@ cout<<"BinaryOp"<<endl;
     return;
   }
   node->left->accept(*this);
-  if (el != nullptr) cn->InsertEndChild(el); //insert the left expression
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the left expression
   if (node->op == nullptr) {
     cerr << "Error: No operator found in a BinaryOp" << endl;
     el = nullptr;
@@ -163,14 +181,16 @@ cout<<"BinaryOp"<<endl;
     return;
   }
   node->right->accept(*this);
-  if (el != nullptr) cn->InsertEndChild(el); //insert the right expression
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the right expression
   el = cn;
 }
 
 void AST2XML::visit(UnaryOp *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"UnaryOp"<<endl;
+  cout << "UnaryOp" << endl;
 #endif
   XMLElement *cn = doc->NewElement("UnaryOp");
   set_position(cn, node->getPos());
@@ -184,32 +204,37 @@ cout<<"UnaryOp"<<endl;
     return;
   }
   node->exp->accept(*this);
-  if (el != nullptr) cn->InsertEndChild(el); //insert the expression
+  if (el != nullptr)
+    cn->InsertEndChild(el); // insert the expression
   el = cn;
 }
 
 void AST2XML::visit(Esc *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"Esc"<<endl;
+  cout << "Esc" << endl;
 #endif
   XMLElement *cn = doc->NewElement("Esc");
   set_position(cn, node->getPos());
   if (node->sl != nullptr && node->sl->size() > 0) {
-    XMLElement* cn1 = visitList<Stm>(doc, *this, node->sl, "StmList");
-    if (cn1 != nullptr) cn->InsertEndChild(cn1); //insert the statement list
+    XMLElement *cn1 = visitList<Stm>(doc, *this, node->sl, "StmList");
+    if (cn1 != nullptr)
+      cn->InsertEndChild(cn1); // insert the statement list
   }
   if (node->exp != nullptr) {
     node->exp->accept(*this);
-    if (el != nullptr) cn->InsertEndChild(el); //insert the expression
+    if (el != nullptr)
+      cn->InsertEndChild(el); // insert the expression
   }
   el = cn;
 }
 
 void AST2XML::visit(IdExp *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"IdExp"<<endl;
+  cout << "IdExp" << endl;
 #endif
   XMLElement *cn = doc->NewElement("IdExp");
   set_position(cn, node->getPos());
@@ -224,9 +249,10 @@ cout<<"IdExp"<<endl;
 }
 
 void AST2XML::visit(IntExp *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"IntExp"<<endl;
+  cout << "IntExp" << endl;
 #endif
   XMLElement *cn = doc->NewElement("IntExp");
   set_position(cn, node->getPos());
@@ -235,9 +261,10 @@ cout<<"IntExp"<<endl;
 }
 
 void AST2XML::visit(OpExp *node) {
-  if (!node) return;
+  if (!node)
+    return;
 #ifdef DEBUG
-cout<<"OpExp"<<endl;
+  cout << "OpExp" << endl;
 #endif
   XMLElement *cn = doc->NewElement("OpExp");
   set_position(cn, node->getPos());
