@@ -104,7 +104,33 @@
 Vscode插件（按需）
 
 - C/C++ Extension Pack：C/C++开发全家桶
-  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错
+  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错。HW1示例
+
+    ```json
+    {
+        "configurations": [
+            {
+                "name": "Win32",
+                "includePath": [
+                    "${workspaceFolder}/build/lib/frontend",
+                    "${workspaceFolder}/include/ast",
+                    "${workspaceFolder}/include/frontend"
+                ],
+                "defines": [
+                    "_DEBUG",
+                    "UNICODE",
+                    "_UNICODE"
+                ],
+                "windowsSdkVersion": "10.0.17763.0",
+                "compilerPath": "D:/Download/VS2022/2017/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/cl.exe",
+                "cStandard": "c17",
+                "cppStandard": "c++17",
+                "intelliSenseMode": "windows-msvc-x64"
+            }
+        ],
+        "version": 4
+    }
+    ```
 - CMake：cmake高亮
 - Yash：flex/bison高亮
 - LLVM Syntax Highlighting：llvm高亮
