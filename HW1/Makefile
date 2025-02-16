@@ -37,16 +37,18 @@ run: $(MAIN)
 	done; \
 	cd .. > /dev/null 2>&1 
 
+FILE = test1
+
 run-one: $(MAIN)
 	cd $(CURDIR)/test && \
 	$(MAIN) ${FILE} ; \
 	echo "Parsing ${FILE}.fmj"; \
 	$(MAIN) "${FILE}"; \
 	echo "Comparing parsed write-out with load+then-write-out"; \
-	diff "${FILE}.2.ast" "$${FILE}.2-debug.ast" ; \
+	diff "${FILE}.2.ast" "${FILE}.2-debug.ast" ; \
 	echo "Comparing parsed write-out with load+then-clone-then-write-out"; \
-	diff "${FILE}.2.ast" "$${FILE}.2-debug3.ast" ; \
+	diff "${FILE}.2.ast" "${FILE}.2-debug3.ast" ; \
 	echo "Comparing parsed write-out with load+then-clone-then-minusConst-converted-write-out"; \
-	diff "$${FILE}.2.ast" "$${FILE}.2-debug4.ast" ; \
+	diff "${FILE}.2.ast" "${FILE}.2-debug4.ast" ; \
 	cd .. > /dev/null 2>&1 
 
