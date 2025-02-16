@@ -2,105 +2,99 @@
 
 以下基于 Windows 的 Linux 子系统 WSL ，版本是 Ubuntu 20.04.6 LTS ，安装方法：[Windows10/11 三步安装wsl2 Ubuntu20.04（任意盘） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/466001838) 。如需使用其他环境（Mac、Docker等）请自行配置（问GPT）。
 
-- 安装gcc-10和g++-10（用于编译c程序）
+gcc和g++（用于编译c程序。需要支持C++17标准的版本。以下演示10版本安装）
 
-  ```bash
-  sudo apt update
-  sudo apt upgrade
-  sudo apt install gcc-10 g++-10
-  # 将安装 GCC 10 版本作为可选的 gcc 编译器，并设置它为默认
-  sudo update-alternatives --config gcc
-  ```
+```bash
+sudo apt update
+sudo apt upgrade
+sudo apt install gcc-10 g++-10
+# 将安装 GCC 10 版本作为可选的 gcc 编译器，并设置它为默认
+sudo update-alternatives --config gcc
+```
+Cmake（用于项目构建。需要3.20.0版本或以上。以下演示3.20.0版本安装）
 
-- 安装clang-14和llvm-14（需要14版本或以上，用于执行.ll文件，同时使用--opaque-pointer）
+```bash
+# Cmake3.20.0 (Unbuntu22版本会自动安装最新版，但Unbuntu20版本需要手动安装)
+mkdir -p ~/download
+cd ~/download
+sudo apt install libssl-dev -y
+wget https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-linux-x86_64.tar.gz
+tar -xzvf cmake-3.20.0-linux-x86_64.tar.gz
+# ~/.bashrc中添加：export PATH=$PATH:~/download/cmake-3.20.0-linux-x86_64/bin
+source ~/.bashrc
+cmake --version
+```
+Ninja（用于快速运行CMake。默认版本即可）
 
-  ```bash
-  # clang-14和llvm-14 (Unbuntu22版本会自动安装最新版，但Unbuntu20版本需要手动安装)
-  wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-  sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
-  sudo apt-get update
-  sudo apt-get install clang-14
-  sudo apt-get install llvm-14
-  clang-14 -v
-  lli-14 --version
-  ```
+```bash
+sudo apt-get install ninja-build
+```
+flex和bison（用于编译器的词法分析和语法分析。需要2.6/3.8版本以上。以下演示2.6.4/3.8版本安装）
 
-- 安装Cmake（需要3.20.0版本或以上，用于项目构建。以下演示3.20.0的版本安装）
+```bash
+# 这里采用自动安装
+sudo apt-get install flex bison
+flex --version # flex 2.6.4
+bison --version # bison (GNU Bison) 3.5.1
+# 安装更高版本的bison
+mkdir -p ~/download
+cd ~/download
+wget http://ftp.gnu.org/gnu/bison/bison-3.8.tar.gz
+tar -xvzf bison-3.8.tar.gz
+cd bison-3.8
+sudo apt install m4 build-essential
+./configure
+make
+sudo make install
+bison --version # bison (GNU Bison) 3.8
+```
+clang-14和llvm-14（用于执行.ll文件，同时使用--opaque-pointer。需要14版本或以上。以下演示14版本安装）
 
-  ```bash
-  # Cmake3.20.0 (Unbuntu22版本会自动安装最新版，但Unbuntu20版本需要手动安装)
-  mkdir -p ~/download
-  cd ~/download
-  sudo apt install libssl-dev -y
-  wget https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-linux-x86_64.tar.gz
-  tar -xzvf cmake-3.20.0-linux-x86_64.tar.gz
-  # ~/.bashrc中添加：export PATH=$PATH:~/download/cmake-3.20.0-linux-x86_64/bin
-  source ~/.bashrc
-  cmake --version
-  ```
+```bash
+# clang-14和llvm-14 (Unbuntu22版本会自动安装最新版，但Unbuntu20版本需要手动安装)
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
+sudo apt-get update
+sudo apt-get install clang-14
+sudo apt-get install llvm-14
+clang-14 -v
+lli-14 --version
+```
 
-- 安装Ninja（用于快速运行CMake）
+交叉编译器（用于将汇编语言转变为arm机器码。祖传的版本）
 
-  ```bash
-  sudo apt-get install ninja-build
-  ```
+```bash
+mkdir -p ~/download
+cd ~/download
+# 下载 gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
+wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-a/8.2-2018.11/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
+tar xf gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
+# ~/.bashrc中添加：export PATH=$PATH:~/software/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin
+source ~/.bashrc
+arm-linux-gnueabihf-g++ -v
+```
+qemu模拟器（用于执行交叉编译出的arm机器码。祖传的版本）
 
-- 安装flex-2.6.4和bison-3.8（用于编译器的词法分析和语法分析）
+```bash
+mkdir -p ~/download
+cd ~/download
+# 下载 qemu-6.2.0.tar.xz
+wget https://download.qemu.org/qemu-6.2.0.tar.xz
+tar xf qemu-6.2.0.tar.xz
+cd qemu-6.2.0
+mkdir build
+cd build
+sudo apt-get install pkg-config libglib2.0-dev
+../configure --target-list=arm-linux-user
+ninja
+sudo ninja install
+qemu-arm --version
+```
+zip（用于打包作业。默认版本即可）
 
-  ```bash
-  sudo apt-get install flex bison # 这里采用自动安装
-  flex --version # flex 2.6.4
-  bison --version # bison (GNU Bison) 3.5.1
-  
-  mkdir -p ~/download
-  cd ~/download
-  wget http://ftp.gnu.org/gnu/bison/bison-3.8.tar.gz
-  tar -xvzf bison-3.8.tar.gz
-  cd bison-3.8
-  sudo apt install m4 build-essential
-  ./configure
-  make
-  sudo make install
-  
-  ```
-
-- 安装交叉编译器（用于将汇编语言转变为arm机器码）
-
-  ```bash
-  mkdir -p ~/download
-  cd ~/download
-  # 下载 gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
-  wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-a/8.2-2018.11/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
-  tar xf gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
-  # ~/.bashrc中添加：export PATH=$PATH:~/software/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin
-  source ~/.bashrc
-  arm-linux-gnueabihf-g++ -v
-  ```
-
-- 安装qemu模拟器（用于执行交叉编译出的arm机器码）
-
-  ```bash
-  mkdir -p ~/download
-  cd ~/download
-  # 下载 qemu-6.2.0.tar.xz
-  wget https://download.qemu.org/qemu-6.2.0.tar.xz
-  tar xf qemu-6.2.0.tar.xz
-  cd qemu-6.2.0
-  mkdir build
-  cd build
-  sudo apt-get install pkg-config libglib2.0-dev
-  ../configure --target-list=arm-linux-user
-  ninja
-  sudo ninja install
-  qemu-arm --version
-  ```
-
-- 安装zip（用于打包作业）
-
-  ```bash
-  sudo apt-get install zip
-  ```
-
+```bash
+sudo apt-get install zip
+```
 Vscode插件（按需）
 
 - C/C++ Extension Pack：C/C++开发全家桶
@@ -146,7 +140,7 @@ Vscode插件（按需）
 - 2024：用**CMake**重构项目
 - 2025（今年）：用**C++**重构项目（lex/yacc→flex/bison；visitor pattern；data structure……）
 
-文档及代码的更新使用git管理，gitee托管（避免翻墙）：【网址待定】
+文档及代码的更新使用git管理，gitee托管（避免翻墙）：https://gitee.com/fudanCompiler/FudanCompilerH2025 【私密仓库，需要联系老师拉入】
 
 我们的编译器仿照gcc三段式的设计
 
