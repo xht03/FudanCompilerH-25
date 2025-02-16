@@ -9,7 +9,7 @@ FDMJ-SLP class hierarchy
     - `Program(Pos* pos, MainMethod *main)`
     - `ASTKind getASTKind() override`
     - `Program* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **MainMethod**: 继承自 `AST`，表示程序的主方法。包含一个 `vector<Stm*>` 成员。
   - **成员**:
     - `vector<Stm*> *sl`
@@ -17,7 +17,7 @@ FDMJ-SLP class hierarchy
     - `MainMethod(Pos *pos, vector<Stm*> *sl)`
     - `ASTKind getASTKind() override`
     - `MainMethod* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **Stm**: 继承自 `AST`，是所有语句的基类。
   - **成员**:
     - 无
@@ -32,7 +32,7 @@ FDMJ-SLP class hierarchy
     - `Assign(Pos *pos, IdExp *left, Exp *exp)`
     - `ASTKind getASTKind() override`
     - `Assign* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **Return**: 继承自 `Stm`，表示返回语句。包含 `Exp* exp` 成员。
   - **成员**:
     - `Exp *exp`
@@ -40,7 +40,7 @@ FDMJ-SLP class hierarchy
     - `Return(Pos *pos, Exp *exp)`
     - `ASTKind getASTKind() override`
     - `Return* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **Exp**: 继承自 `AST`，是所有表达式的基类。
   - **成员**:
     - 无
@@ -56,7 +56,7 @@ FDMJ-SLP class hierarchy
     - `BinaryOp(Pos *pos, Exp *left, OpExp *op, Exp *right)`
     - `ASTKind getASTKind() override`
     - `BinaryOp* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **UnaryOp**: 继承自 `Exp`，表示一元操作。包含 `OpExp* op` 和 `Exp* exp` 成员。
   - **成员**:
     - `OpExp *op`
@@ -65,7 +65,7 @@ FDMJ-SLP class hierarchy
     - `UnaryOp(Pos *pos, OpExp *op, Exp *exp)`
     - `ASTKind getASTKind() override`
     - `UnaryOp* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **Esc**: 继承自 `Exp`，表示转义表达式。包含 `vector<Stm*>* sl` 和 `Exp* exp` 成员。
   - **成员**:
     - `vector<Stm*> *sl`
@@ -74,7 +74,7 @@ FDMJ-SLP class hierarchy
     - `Esc(Pos *pos, vector<Stm*> *sl, Exp *exp)`
     - `ASTKind getASTKind() override`
     - `Esc* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **IdExp**: 继承自 `Exp`，表示标识符表达式。包含 `string id` 成员。
   - **成员**:
     - `string id`
@@ -82,7 +82,7 @@ FDMJ-SLP class hierarchy
     - `IdExp(Pos *pos, string id)`
     - `ASTKind getASTKind() override`
     - `IdExp* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **IntExp**: 继承自 `Exp`，表示整数表达式。包含 `int val` 成员。
   - **成员**:
     - `int val`
@@ -90,7 +90,7 @@ FDMJ-SLP class hierarchy
     - `IntExp(Pos *pos, int val)`
     - `ASTKind getASTKind() override`
     - `IntExp* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
 - **OpExp**: 继承自 `Exp`，表示操作符表达式。包含 `string op` 成员。
   - **成员**:
     - `string op`
@@ -98,4 +98,4 @@ FDMJ-SLP class hierarchy
     - `OpExp(Pos *pos, string op)`
     - `ASTKind getASTKind() override`
     - `OpExp* clone() override`
-    - `void accept(AST_Visitor &v) override`
+    - `void accept(ASTVisitor &v) override`
