@@ -11,6 +11,7 @@ sudo apt install gcc-10 g++-10
 # 将安装 GCC 10 版本作为可选的 gcc 编译器，并设置它为默认
 sudo update-alternatives --config gcc
 ```
+
 Cmake（用于项目构建。需要3.20.0版本或以上。以下演示3.20.0版本安装）
 
 ```bash
@@ -24,11 +25,13 @@ tar -xzvf cmake-3.20.0-linux-x86_64.tar.gz
 source ~/.bashrc
 cmake --version
 ```
+
 Ninja（用于快速运行CMake。默认版本即可）
 
 ```bash
 sudo apt-get install ninja-build
 ```
+
 flex和bison（用于编译器的词法分析和语法分析。需要2.6/3.8版本以上。以下演示2.6.4/3.8版本安装）
 
 ```bash
@@ -48,6 +51,7 @@ make
 sudo make install
 bison --version # bison (GNU Bison) 3.8
 ```
+
 clang-14和llvm-14（用于执行.ll文件，同时使用--opaque-pointer。需要14版本或以上。以下演示14版本安装）
 
 ```bash
@@ -73,6 +77,7 @@ tar xf gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
 source ~/.bashrc
 arm-linux-gnueabihf-g++ -v
 ```
+
 qemu模拟器（用于执行交叉编译出的arm机器码。祖传的版本）
 
 ```bash
@@ -90,6 +95,7 @@ ninja
 sudo ninja install
 qemu-arm --version
 ```
+
 clang-format（代码格式化。默认版本即可）
 
 ```bash
@@ -102,6 +108,7 @@ zip（用于打包作业。默认版本即可）
 ```bash
 sudo apt-get install zip
 ```
+
 Vscode插件（按需）
 
 - C/C++ Extension Pack：C/C++开发全家桶
@@ -115,7 +122,8 @@ Vscode插件（按需）
                 "includePath": [
                     "${workspaceFolder}/build/lib/frontend",
                     "${workspaceFolder}/include/ast",
-                    "${workspaceFolder}/include/frontend"
+                    "${workspaceFolder}/include/frontend",
+                    "${workspaceFolder}/vendor/tinyxml2"
                 ],
                 "defines": [
                     "_DEBUG",
@@ -178,6 +186,7 @@ Vscode插件（按需）
 ├── CMakeLists.txt CMake构建文件
 └── Makefile 构建、测试、清理命令
 ```
+
 作业内容与评分：请按照上述项目结构完成编码，并记录实验过程。每次作业满分为100分
 
 - 我们会发布样例测试文件（见test文件夹），都通过将获得30的分数；
@@ -243,9 +252,10 @@ gcc的前端和后端没分得太开，前端后端耦合在了一起，所以gc
 
 ## Visitor Pattern
 
-> [秒懂设计模式之访问者模式（Visitor Pattern） - 知乎](https://zhuanlan.zhihu.com/p/380161731) 
+> [秒懂设计模式之访问者模式（Visitor Pattern） - 知乎](https://zhuanlan.zhihu.com/p/380161731)
 
 Visitor Pattern（访问者模式） 的主要目的是将一些作用于某一数据结构的操作与数据结构本身分离，使得可以在不修改数据结构的前提下，新增不同的操作（开闭原则：一个类应该对扩展开放，对修改封闭）。
 
-该模式有助于不断遍历编译器的抽象语法树（AST） ，进行不同的操作。 
+该模式有助于不断遍历编译器的抽象语法树（AST） ，进行不同的操作。
 
+![ast_uml](img/ast_uml.png)

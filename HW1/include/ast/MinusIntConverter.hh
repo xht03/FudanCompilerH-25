@@ -9,7 +9,7 @@ using namespace fdmj;
 
 Program *minusIntRewrite(Program *root);
 
-class MinusIntConverter : public AST_Visitor {
+class MinusIntConverter : public ASTVisitor {
 public:
   AST *newNode =
       nullptr; // newNode is the root of a clone of the original AST (sub) tree
