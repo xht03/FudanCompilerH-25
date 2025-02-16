@@ -100,6 +100,7 @@ clang-format（代码格式化。默认版本即可）
 
 ```bash
 sudo apt-get install clang-format
+# 代码格式化的命令如下
 find . -name "*.cc" -o -name "*.hh" | xargs clang-format -i
 ```
 

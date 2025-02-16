@@ -9,9 +9,9 @@
 
 namespace fdmj {
 
-class Pos;         // members: sline, scolumn, eline, ecolumn
+class Pos;        // members: sline, scolumn, eline, ecolumn
 class ASTVisitor; // Abstract Syntax Tree Visitor (with a templated return
-                   // type).
+                  // type).
 
 // Abstract Syntax Tree. Root is AST, which is the base class for all nodes in
 // the AST. All have a member: pos, which is of type Pos for position info
