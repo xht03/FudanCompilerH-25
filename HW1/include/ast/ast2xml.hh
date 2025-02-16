@@ -9,12 +9,13 @@ using namespace std;
 using namespace fdmj;
 using namespace tinyxml2;
 
-XMLDocument* ast2xml(fdmj::Program *root, bool location_flag);
+XMLDocument *ast2xml(fdmj::Program *root, bool location_flag);
 
-class AST2XML : public fdmj::AST_Visitor {
+class AST2XML : public fdmj::ASTVisitor {
 public:
-  XMLDocument *doc; //XMLDocument to store the AST
-  XMLElement *el; //temp to remember the results during the AST is recursively visited. 
+  XMLDocument *doc; // XMLDocument to store the AST
+  XMLElement *
+      el; // temp to remember the results during the AST is recursively visited.
 
 public:
   void visit(Program *node) override;
