@@ -18,7 +18,7 @@ public:
   Program(Pos *pos, MainMethod *main) : AST(pos), main(main){};
   ASTKind getASTKind() override { return ASTKind::Program; }
   Program *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class MainMethod : public AST {
@@ -27,7 +27,7 @@ public:
   MainMethod(Pos *pos, vector<Stm *> *sl) : AST(pos), sl(sl) {}
   ASTKind getASTKind() override { return ASTKind::MainMethod; }
   MainMethod *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class Stm : public AST { // this is the class for all statements
@@ -43,7 +43,7 @@ public:
   Assign(Pos *pos, Exp *left, Exp *exp) : Stm(pos), left(left), exp(exp) {}
   ASTKind getASTKind() override { return ASTKind::Assign; }
   Assign *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class Return : public Stm {
@@ -52,7 +52,7 @@ public:
   Return(Pos *pos, Exp *exp) : Stm(pos), exp(exp) {}
   ASTKind getASTKind() override { return ASTKind::Return; }
   Return *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class Exp : public AST { // this is the class for all expressions
@@ -70,7 +70,7 @@ public:
       : Exp(pos), left(left), op(op), right(right) {}
   ASTKind getASTKind() override { return ASTKind::BinaryOp; }
   BinaryOp *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class UnaryOp : public Exp {
@@ -80,7 +80,7 @@ public:
   UnaryOp(Pos *pos, OpExp *op, Exp *exp) : Exp(pos), op(op), exp(exp) {}
   ASTKind getASTKind() override { return ASTKind::UnaryOp; }
   UnaryOp *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class Esc : public Exp {
@@ -91,7 +91,7 @@ public:
   Esc(Pos *pos, vector<Stm *> *sl, Exp *exp) : Exp(pos), sl(sl), exp(exp) {}
   ASTKind getASTKind() override { return ASTKind::Esc; }
   Esc *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class IdExp : public Exp {
@@ -100,7 +100,7 @@ public:
   IdExp(Pos *pos, string id) : Exp(pos), id(id) {}
   ASTKind getASTKind() override { return ASTKind::IdExp; }
   IdExp *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class IntExp : public Exp {
@@ -109,7 +109,7 @@ public:
   IntExp(Pos *pos, int val) : Exp(pos), val(val) {}
   ASTKind getASTKind() override { return ASTKind::IntExp; }
   IntExp *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 class OpExp : public Exp {
@@ -118,7 +118,7 @@ public:
   OpExp(Pos *pos, string op) : Exp(pos), op(op) {}
   ASTKind getASTKind() override { return ASTKind::OpExp; }
   OpExp *clone() override;
-  void accept(AST_Visitor &v) override { v.visit(this); }
+  void accept(ASTVisitor &v) override { v.visit(this); }
 };
 
 } // namespace fdmj

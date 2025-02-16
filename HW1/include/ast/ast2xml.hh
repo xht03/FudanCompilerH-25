@@ -11,7 +11,7 @@ using namespace tinyxml2;
 
 XMLDocument *ast2xml(fdmj::Program *root, bool location_flag);
 
-class AST2XML : public fdmj::AST_Visitor {
+class AST2XML : public fdmj::ASTVisitor {
 public:
   XMLDocument *doc; // XMLDocument to store the AST
   XMLElement *

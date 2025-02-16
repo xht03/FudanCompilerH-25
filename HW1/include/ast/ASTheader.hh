@@ -10,7 +10,7 @@
 namespace fdmj {
 
 class Pos;         // members: sline, scolumn, eline, ecolumn
-class AST_Visitor; // Abstract Syntax Tree Visitor (with a templated return
+class ASTVisitor; // Abstract Syntax Tree Visitor (with a templated return
                    // type).
 
 // Abstract Syntax Tree. Root is AST, which is the base class for all nodes in
@@ -48,7 +48,7 @@ public:
   ~AST() { delete pos; }
   AST(Pos *pos) : pos(pos) {}
   Pos *getPos() { return pos; }
-  virtual void accept(AST_Visitor &v) = 0;
+  virtual void accept(ASTVisitor &v) = 0;
   virtual ASTKind getASTKind() = 0;
   virtual AST *clone() = 0;
 
@@ -56,7 +56,7 @@ protected:
   Pos *pos = nullptr;
 };
 
-class AST_Visitor {
+class ASTVisitor {
 public:
   virtual void visit(Program *node) = 0;
   virtual void visit(MainMethod *node) = 0;
