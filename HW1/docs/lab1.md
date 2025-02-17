@@ -73,7 +73,7 @@ cd ~/download
 # 下载 gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
 wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-a/8.2-2018.11/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
 tar xf gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz
-# ~/.bashrc中添加：export PATH=$PATH:~/software/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin
+# ~/.bashrc中添加：export PATH=$PATH:~/download/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin
 source ~/.bashrc
 arm-linux-gnueabihf-g++ -v
 ```
