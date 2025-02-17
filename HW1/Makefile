@@ -1,7 +1,7 @@
 RM       = rm -rf
 MAKEFLAGS = --no-print-directory
 
-.PHONY: build clean rebuild
+.PHONY: build clean rebuild handin
 
 BUILD_DIR = $(CURDIR)/build
 
@@ -15,11 +15,19 @@ clean:
 
 rebuild: clean build
 
-.PHONY: main xml2astTesk
+handin:
+	@if [ ! -f docs/report.pdf ]; then \
+		echo "请先在docs文件夹下攥写报告, 并转换为'report.pdf'"; \
+		exit 1; \
+	fi; \
+	echo "请输入'学号-姓名' (例如: 12345678910-某个人)"; \
+	read filename; \
+	zip -q -r "docs/$$filename-hw1.zip" \
+	  docs/report.pdf include lib
+
+.PHONY: run run-one
 
 MAIN = $(BUILD_DIR)/tools/main/main
-XML2ASTTest = $(BUILD_DIR)/tools/dev/xml2astTest
-AST2XMLTest = $(BUILD_DIR)/tools/dev/ast2xmlTest
 
 run: $(MAIN)
 	cd $(CURDIR)/test && \
@@ -51,4 +59,3 @@ run-one: $(MAIN)
 	echo "Comparing parsed write-out with load+then-clone-then-minusConst-converted-write-out"; \
 	diff "${FILE}.2.ast" "${FILE}.2-debug4.ast" ; \
 	cd .. > /dev/null 2>&1 
-
