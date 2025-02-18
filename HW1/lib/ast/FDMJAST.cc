@@ -79,13 +79,13 @@ BinaryOp *BinaryOp::clone() {
   Exp *l = (this->left) ? static_cast<Exp *>(left->clone()) : nullptr;
   Exp *r = (this->right) ? static_cast<Exp *>(right->clone()) : nullptr;
   OpExp *o = (this->op) ? static_cast<OpExp *>(op->clone()) : nullptr;
-  return new BinaryOp(pos->clone(), l, op, r);
+  return new BinaryOp(pos->clone(), l, o, r);
 }
 
 UnaryOp *UnaryOp::clone() {
   Exp *e = (this->exp) ? static_cast<Exp *>(exp->clone()) : nullptr;
   OpExp *o = (this->op) ? static_cast<OpExp *>(op->clone()) : nullptr;
-  return new UnaryOp(pos->clone(), op, e);
+  return new UnaryOp(pos->clone(), o, e);
 }
 
 Esc *Esc::clone() {
