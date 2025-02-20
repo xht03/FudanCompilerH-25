@@ -1,6 +1,6 @@
 # 环境配置
 
-以下基于 Windows 的 Linux 子系统 WSL ，版本是 Ubuntu 20.04.6 LTS ，安装方法：[Windows10/11 三步安装wsl2 Ubuntu20.04（任意盘） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/466001838) 。如需使用其他环境（Mac、Docker等）请自行配置（问GPT）。
+以下基于 Windows 的 Linux 子系统 WSL ，版本是 Ubuntu 20.04.6 LTS ，安装方法：[Windows10/11 三步安装wsl2 Ubuntu20.04（任意盘） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/466001838) 。如需使用其他环境（Mac、Docker等）请自行配置（问GPT），满足依赖的版本要求即可。
 
 gcc和g++（用于编译c程序。需要支持C++17标准的版本。以下演示10版本安装）
 
@@ -195,7 +195,7 @@ Vscode插件（按需）
 - 实验过程记录满足以下要求则可获得10的分数：
   - 按开发过程的顺序描述用到的参考材料，包括虎书、网站等，并附上描述与链接；
   - 展示关键技术的实现，简要描述即可；
-  - 本地的git提交记录，展示开发过程；
+  - 本地的git提交记录（截图vscode里的git graph即可），展示开发过程；
   - 测试通过截图。
 
 作业打包与提交：
