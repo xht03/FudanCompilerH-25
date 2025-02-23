@@ -49,7 +49,7 @@ public:
 class Return : public Stm {
 public:
   Exp *exp = nullptr;
-  Return(Pos *pos, Exp *exp) : Stm(pos), exp(exp) {}
+  Return(Pos *pos, Exp *exp) : Stm(pos), exp(exp){}
   ASTKind getASTKind() override { return ASTKind::Return; }
   Return *clone() override;
   void accept(ASTVisitor &v) override { v.visit(this); }

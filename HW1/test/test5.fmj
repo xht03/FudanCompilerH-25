@@ -1,0 +1,5 @@
+public int main() {
+	x = 1;
+    y = (-((-1)+x));
+	return ({z=1; x=2;} (x+y));
+}
