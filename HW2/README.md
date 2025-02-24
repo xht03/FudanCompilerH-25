@@ -28,7 +28,7 @@ So that you may use "make test" command under HW2 to execute all your programs t
 
 ## 补充说明
 
-1. 纸面作业：可以借助网站[CFG Developer (stanford.edu)](https://web.stanford.edu/class/archive/cs/cs103/cs103.1156/tools/cfg/)验证语法是否非歧义
+1. 纸面作业：可以借助网站[CFG Developer (stanford.edu)](https://web.stanford.edu/class/archive/cs/cs103/cs103.1156/tools/cfg/)验证语法是否非歧义。`report.pdf`只需包含每题的解答即可。
 2. 编程作业：
    1. 每题的实现都位于 `HW2/tools/`下的一个文件夹。例如题目 `question`，位于 `HW2/tools/question`，需要编写相应的C++/lex/yacc等文件，并自行编写 `Makefile`/`CMake`对代码进行编译。要求：`Makefile`中有 `make build`、`make clean`和 `make test`命令：
       - `make build`生成可执行的 `HW2/tools/question/build/main.out`
