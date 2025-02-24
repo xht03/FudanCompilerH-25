@@ -6,4 +6,4 @@ handin:
 	echo "请输入'学号-姓名' (例如: 12345678910-某个人)"; \
 	read filename; \
 	zip -q -r "docs/$$filename-hw1.zip" \
-	  docs/report.pdf 3.3d 3.11
+	  docs/report.pdf 2.4b 2.5c 3.3d 3.11
