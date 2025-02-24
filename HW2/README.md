@@ -4,13 +4,11 @@ The second homework is a written one, with some coding.
 
 1. Pen & paper assignment:  Do the exercises 2.4(b), 2.5(c), 3.3(b,d), 3.4, 3.12(a, b) in the textbook. (Note that the example given in 3.3(d) in the textbook is wrong. It should be “[([])()[(][])]”.)
 
-2. For exercise 2.4(b), 2.5(c), write the lex programs, respectively, that will accept exactly those strings that are described in them.
+2. For exercise 2.4(b), 2.5(c), write the lex programs, respectively, that will accept exactly those strings (given in the *.txt files under the test directory) that are described in them.
 
-3. For 3.3(d), write the yacc program that will accept exactly those described strings. The program should test all the input files under the test directory.
+3. For 3.3(d), write the yacc program that will accept exactly those described strings. The program should test all the input files (*.txt) under the test directory.
 
-4. For 3.11, produce the LR(0) parsing table, and then code a parser in C++ (NOT using YACC) using the technique described in Figure 3.18 (in the textbook) that parses an input string given in all the \*.txt files under the test directory. (See Repo/HW2.)
-
-(For 3 and 4 above, use two different directories with their own Makefiles and test directory.)
+4. For 3.11, produce the LR(0) parsing table, and then code a parser in C++ (NOT using YACC) using the technique described in Figure 3.18 (in the textbook) that parses an input string in the test files.
 
 ## Note1
 
@@ -24,12 +22,11 @@ The second homework is a written one, with some coding.
 
 You should scan your written solutions and put into the report.pdf (under your doc directory), and use "make handin" to wrap everything into a zip file to submit on elearning.
 
-Note that 2.4(b), 2.5(c), 3.3(d) need you to write programs with lex and yacc. Do:
+Note that 2.4(b), 2.5(c), 3.3(d) need you to write programs with lex and yacc (note: don't use lex/yacc for 3.11). Do:
 
-* Put all your code under "hw2/tools" directory.
-* Add necessary CMakefile under "hw2" and "hw2/tools" directories.
-* Change the Makefile under "hw2"
+* Put all your code under the corresponding directory.
+* Change the Makefile under "HW2" that will go into the subdirectories to complete the commands
 
-So that you may use "make test" command under hw2 to execute all your programs to test all the corresponding test cases under "hw2/test" directory.
+So that you may use "make test" command under HW2 to execute all your programs to test all the corresponding test cases under all the "test" directories.
 
 补充：每道题一个文件夹，其中Makefile文件应有 `make build`、`make test`、 `make test`命令，供主文件夹里Makefile使用（注意修改主文件里的Makefile）
