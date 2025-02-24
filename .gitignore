@@ -8,6 +8,7 @@ build/
 #except for *.fmj source files
 !/**/test/*.fmj
 !/**/test/*.txt
+!/**/test/.keep
 .vscode
 
 # Prerequisites
