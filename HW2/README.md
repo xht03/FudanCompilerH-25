@@ -29,4 +29,10 @@ Note that 2.4(b), 2.5(c), 3.3(d) need you to write programs with lex and yacc (n
 
 So that you may use "make test" command under HW2 to execute all your programs to test all the corresponding test cases under all the "test" directories.
 
-补充：每道题一个文件夹，其中Makefile文件应有 `make build`、`make test`、 `make test`命令，供主文件夹里Makefile使用（注意修改主文件里的Makefile）
+## 补充说明
+
+1. 每题一个文件夹，例如题目`question`，位于`HW2/tools/question`底下。需要编写相应的C++和lex/yacc等文件，并自行编写`Makefile`和`CMake`对代码进行编译。要求：`Makefile`中有`make build`、`make clean`和`make test`命令：
+   - `make build`生成可执行的`HW2/tools/question/build/main.out`
+   - `make clean`删除`HW2/tools/question/build`文件夹等所有编译产生的中间文件
+   - `make test`使用`HW2/tools/question/build/main.out`对所有`HW2/test/question/`文件夹下的`.txt`文件进行测试
+2. 测试时，在主文件夹`HW2`下运行`make build`、`make clean`和`make test`命令，会调用所有题目文件夹下的`make build`、`make clean`和`make test`命令。请自行修改主文件夹下的`Makefile`
