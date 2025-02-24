@@ -8,7 +8,7 @@ The second homework is a written one, with some coding.
 
 3. For 3.3(d), write the yacc program that will accept exactly those described strings. The program should test all the input files (*.txt) under the test directory.
 
-4. For 3.11, produce the LR(0) parsing table, and then code a parser in C++ (NOT using YACC) using the technique described in Figure 3.18 (in the textbook) that parses an input string in the test files.
+4. For 3.12(a), produce the LR(0) parsing table, and then code a parser in C++ (NOT using YACC) using the technique described in Figure 3.18 (in the textbook) that parses an input string in the test files.
 
 ## Note1
 
@@ -22,7 +22,7 @@ The second homework is a written one, with some coding.
 
 You should scan your written solutions and put into the report.pdf (under your doc directory), and use "make handin" to wrap everything into a zip file to submit on elearning.
 
-Note that 2.4(b), 2.5(c), 3.3(d) need you to write programs with lex and yacc (note: don't use lex/yacc for 3.11). Do:
+Note that 2.4(b), 2.5(c), 3.3(d) need you to write programs with lex and yacc (note: don't use lex/yacc for 3.12(a)). Do:
 
 * Put all your code under the corresponding directory.
 * Change the Makefile under "HW2" that will go into the subdirectories to complete the commands
