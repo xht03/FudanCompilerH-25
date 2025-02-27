@@ -20,9 +20,13 @@ Program* constantPropagation(Program* root)
     if (root == nullptr)
         return nullptr;
 
-    ConstantPropagation v(nullptr); // 创建 visitor 对象
-    root->accept(v);                // 进行常量传播转换
-    return dynamic_cast<Program*>(v.newNode);
+    MinusIntConverter v1(nullptr);      // 创建 visitor 对象
+    ConstantPropagation v2(nullptr);    // 创建 visitor 对象
+
+    root->accept(v1);           // 遍历 AST，将所有的减法表达式转换为加法表达式
+    v1.newNode->accept(v2);     // 遍历 AST，进行常量传播
+
+    return dynamic_cast<Program*>(v2.newNode);
 }
 
 template <typename T> static vector<T*>* visitList(ConstantPropagation& v, vector<T*>* tl)

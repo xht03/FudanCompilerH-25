@@ -25,7 +25,7 @@ int main(int argc, const char* argv[])
     string file;
 
     chdir("../../../test");
-    file = "test5";
+    file = "test4";
 
     // const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
 
