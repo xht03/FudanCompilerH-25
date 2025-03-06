@@ -40,11 +40,10 @@ run: $(MAIN)
 	done; \
 	cd .. > /dev/null 2>&1 
 
-FILE = test1
+FILE ?= test1
 
 run-one: $(MAIN)
 	cd $(CURDIR)/test && \
-	$(MAIN) ${FILE} ; \
 	echo "Parsing ${FILE}.fmj"; \
 	$(MAIN) "${FILE}"; \
 	cd .. > /dev/null 2>&1 
