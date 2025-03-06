@@ -4,7 +4,7 @@
 
 This assignment is to
 
-1. parse the full FDMJ into FDMJ-AST, as an extension of the parser from HW1，
+1. parse the full FDMJ into FDMJ-AST, as an extension of the parser from HW1 (paser.yy and lexer.ll are copied from HW1 and you need to change them)，
 2. write a visitor of the AST (using the template given in setnamemaps.cc) to produce semantic map for names (namemap), and
 3. write another visitor of the AST (using the template given in semantanlyzer.cc) to add semantic information to each AST node (if applicable).
 
