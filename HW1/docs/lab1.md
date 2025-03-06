@@ -110,32 +110,24 @@ zip（用于打包作业。默认版本即可）
 sudo apt-get install zip
 ```
 
-Vscode插件（按需）
-
+Vscode插件（按需）：打开 VSCode，然后通过 Remote - WSL 扩展打开你的项目。这个扩展可以让你在 WSL 环境中直接运行 VSCode，以便更好地集成 Linux 工具链。
 - C/C++ Extension Pack：C/C++开发全家桶
-  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错。HW1示例
+  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错。例如
 
     ```json
     {
         "configurations": [
             {
-                "name": "Win32",
+                "name": "Linux",
                 "includePath": [
                     "${workspaceFolder}/build/lib/frontend",
-                    "${workspaceFolder}/include/ast",
-                    "${workspaceFolder}/include/frontend",
-                    "${workspaceFolder}/vendor/tinyxml2"
+                    "${workspaceFolder}/include",
+                    "${workspaceFolder}/vendor"
                 ],
-                "defines": [
-                    "_DEBUG",
-                    "UNICODE",
-                    "_UNICODE"
-                ],
-                "windowsSdkVersion": "10.0.17763.0",
-                "compilerPath": "D:/Download/VS2022/2017/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/cl.exe",
+                "compilerPath": "usr/bin/gcc",
                 "cStandard": "c17",
                 "cppStandard": "c++17",
-                "intelliSenseMode": "windows-msvc-x64"
+                "intelliSenseMode": "linux-gcc-x64"
             }
         ],
         "version": 4
