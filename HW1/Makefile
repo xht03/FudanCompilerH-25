@@ -3,7 +3,6 @@ MAKEFLAGS = --no-print-directory
 
 BUILD_DIR = $(CURDIR)/build
 TEST_DIR = $(CURDIR)/test
-TEST_EXTRA_DIR = $(CURDIR)/test/extra
 MAIN_EXE = $(BUILD_DIR)/tools/main/main
 TEST_EXE = $(BUILD_DIR)/tools/test/test
 
@@ -14,7 +13,9 @@ build:
 	cd $(BUILD_DIR) && ninja
 
 clean:
-	@$(RM) $(TEST_DIR)/*.ast
+	@find $(TEST_DIR) -type f \( \
+		-name "*.ast" -o -name "*.out"\
+		\) -exec $(RM) {} \;
 
 veryclean: clean 
 	@$(RM) $(BUILD_DIR)
@@ -41,7 +42,7 @@ handin:
 	  docs/report.pdf include lib
 
 test-extra: clean
-	@cd $(TEST_EXTRA_DIR); \
+	@cd $(TEST_DIR)/extra; \
 	for file in $$(ls .); do \
 		if [ "$${file##*.}" = "fmj" ]; then \
 			echo "[$${file%%.*}]"; \
