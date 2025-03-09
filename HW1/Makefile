@@ -1,20 +1,33 @@
 RM       = rm -rf
 MAKEFLAGS = --no-print-directory
 
-.PHONY: build clean rebuild handin
-
 BUILD_DIR = $(CURDIR)/build
+TEST_DIR = $(CURDIR)/test
+MAIN_EXE = $(BUILD_DIR)/tools/main/main
+TEST_EXE = $(BUILD_DIR)/tools/test/test
+
+.PHONY: build clean veryclean rebuild test handin
 
 build:
 	@cmake -G Ninja -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release; \
 	cd $(BUILD_DIR) && ninja
-# cd $(BUILD_DIR) && ninja -v
 
-clean: 
-	@$(RM) build ; \
-	$(RM) test/*.ast ; \
+clean:
+	@$(RM) test/*.ast
 
-rebuild: clean build
+veryclean: clean 
+	@$(RM) build
+
+rebuild: veryclean build
+
+test: clean
+	@cd $(TEST_DIR); \
+	for file in $$(ls .); do \
+		if [ "$${file##*.}" = "fmj" ]; then \
+			echo "[$${file%%.*}]"; \
+			$(TEST_EXE) "$${file%%.*}"; \
+		fi \
+	done
 
 handin:
 	@if [ ! -f docs/report.pdf ]; then \
@@ -28,14 +41,12 @@ handin:
 
 .PHONY: run run-one
 
-MAIN = $(BUILD_DIR)/tools/main/main
-
-run: $(MAIN)
-	cd $(CURDIR)/test && \
+run: clean
+	cd $(TEST_DIR) && \
 	for file in $$(ls .); do \
         if [ "$${file##*.}" = "fmj" ]; then \
             echo "Parsing $${file%%.*}"; \
-			$(MAIN) "$${file%%.*}"; \
+			$(MAIN_EXE) "$${file%%.*}"; \
 			echo "Comparing parsed write-out with load+then-write-out"; \
 			diff "$${file%%.*}.2.ast" "$${file%%.*}.2-debug.ast" ; \
 			echo "Comparing parsed write-out with load+then-clone-then-write-out"; \
@@ -48,11 +59,11 @@ run: $(MAIN)
 
 FILE = test1
 
-run-one: $(MAIN)
+run-one: clean
 	cd $(CURDIR)/test && \
-	$(MAIN) ${FILE} ; \
+	$(MAIN_EXE) ${FILE} ; \
 	echo "Parsing ${FILE}.fmj"; \
-	$(MAIN) "${FILE}"; \
+	$(MAIN_EXE) "${FILE}"; \
 	echo "Comparing parsed write-out with load+then-write-out"; \
 	diff "${FILE}.2.ast" "${FILE}.2-debug.ast" ; \
 	echo "Comparing parsed write-out with load+then-clone-then-write-out"; \
