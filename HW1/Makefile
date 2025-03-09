@@ -13,10 +13,10 @@ build:
 	cd $(BUILD_DIR) && ninja
 
 clean:
-	@$(RM) test/*.ast
+	@$(RM) $(TEST_DIR)/*.ast
 
 veryclean: clean 
-	@$(RM) build
+	@$(RM) $(BUILD_DIR)
 
 rebuild: veryclean build
 
