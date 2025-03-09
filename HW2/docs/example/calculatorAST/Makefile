@@ -11,10 +11,10 @@ lex.yy.c: calc.lex y.tab.h y.tab.c
 	lex calc.lex
 	
 y.tab.c: calc.yacc calc.h 
-	yacc -d calc.yacc
+	yacc -d  -v calc.yacc
 	
 y.tab.h: calc.yacc
-	yacc -d calc.yacc
+	yacc -d -v calc.yacc
 	
 
 util.o: util.c util.h
@@ -27,4 +27,4 @@ y.tab.o: y.tab.c
 	cc -g -c y.tab.c
 
 clean: 
-	rm -f calc lex.yy.o lex.yy.c y.tab.o y.tab.c y.tab.h calc.o util.o printast.o
+	rm -f calc lex.yy.o lex.yy.c y.tab.o y.tab.c y.tab.h calc.o util.o printast.o y.output
