@@ -5,6 +5,7 @@ build/
 # Prerequisites
 *.d
 *.ast
+*.out
 
 # Compiled Object files
 *.slo

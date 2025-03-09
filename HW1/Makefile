@@ -3,10 +3,11 @@ MAKEFLAGS = --no-print-directory
 
 BUILD_DIR = $(CURDIR)/build
 TEST_DIR = $(CURDIR)/test
+TEST_EXTRA_DIR = $(CURDIR)/test/extra
 MAIN_EXE = $(BUILD_DIR)/tools/main/main
 TEST_EXE = $(BUILD_DIR)/tools/test/test
 
-.PHONY: build clean veryclean rebuild test handin
+.PHONY: build clean veryclean rebuild test handin test-extra
 
 build:
 	@cmake -G Ninja -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release; \
@@ -38,6 +39,15 @@ handin:
 	read filename; \
 	zip -q -r "docs/$$filename-hw1.zip" \
 	  docs/report.pdf include lib
+
+test-extra: clean
+	@cd $(TEST_EXTRA_DIR); \
+	for file in $$(ls .); do \
+		if [ "$${file##*.}" = "fmj" ]; then \
+			echo "[$${file%%.*}]"; \
+			$(TEST_EXE) "$${file%%.*}"; \
+		fi \
+	done
 
 .PHONY: run run-one
 

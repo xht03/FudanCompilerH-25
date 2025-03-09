@@ -33,13 +33,14 @@ int main(int argc, const char *argv[]) {
 
   // boilerplate output filenames (used throutghout the compiler pipeline)
   string file_fmj = file + ".fmj"; // input source file
-  string file_ast_1 = file + ".1.ast"; // raw
-  string file_ast_2 = file + ".2.ast"; // constant propagation
+  string file_ast_1 = file + ".1.out"; // raw
+  string file_ast_2 = file + ".2.out"; // constant propagation
+  string file_return = file + ".3.out"; // return
 
-  std::ifstream fmjfile(file_fmj);
+  ifstream fmjfile(file_fmj);
   Program *root = fdmjParser(fmjfile, false); // false means no debug info from parser
   if (root == nullptr) {
-    std::cout << "AST is not valid!" << endl;
+    cerr << "AST is not valid!" << endl;
     return EXIT_FAILURE;
   }
 
@@ -57,7 +58,9 @@ int main(int argc, const char *argv[]) {
   x->SaveFile(file_ast_2.c_str());
 
   // execution
-  cout << execute(root) << endl << execute(cp) << endl;
+  ofstream outFile(file_return);
+  outFile << execute(root) << endl << execute(cp) << endl;
+  outFile.close();
 
   return EXIT_SUCCESS;
 }
