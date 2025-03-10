@@ -27,4 +27,4 @@ y.tab.o: y.tab.c
 	cc -g -c y.tab.c
 
 clean: 
-	rm -f calc lex.yy.o lex.yy.c y.tab.o y.tab.c y.tab.h calc.o util.o printast.o
+	rm -f calc lex.yy.o lex.yy.c y.tab.o y.tab.c y.tab.h calc.o util.o printast.o y.output

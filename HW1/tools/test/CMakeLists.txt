@@ -1,8 +1,7 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-result --std=c++17")
 
-
 # 指定生成目标
-set(MAIN "main")
+set(MAIN "test")
 add_executable(${MAIN} main.cc)
 target_compile_features(${MAIN} PUBLIC cxx_std_17)
 
@@ -10,6 +9,5 @@ target_compile_features(${MAIN} PUBLIC cxx_std_17)
 target_link_libraries(${MAIN} PUBLIC
   frontend
   ast
-  util
   vendor_xml
 )

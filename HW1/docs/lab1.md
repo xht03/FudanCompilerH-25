@@ -110,10 +110,9 @@ zip（用于打包作业。默认版本即可）
 sudo apt-get install zip
 ```
 
-Vscode插件（按需）
-
+Vscode插件（按需）：打开 VSCode，然后通过 Remote - WSL 扩展打开你的项目。这个扩展可以让你在 WSL 环境中直接运行 VSCode，以便更好地集成 Linux 工具链。
 - C/C++ Extension Pack：C/C++开发全家桶
-  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错。HW1示例
+  - 注意 `.vscode/c_cpp_properties.json`文件的编写，有助于识别头文件避免报错。例如
 
     ```json
     {
