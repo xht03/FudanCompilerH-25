@@ -2,36 +2,75 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
-int parse_file(const std::string &filename) {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    std::cerr << "Could not open the file!" << std::endl;
-    return -1;
-  }
+using namespace std;
 
-  std::string word;
-  int wordCount = 0;
-  while (file >> word) {
-    std::cout << word << " ";
-    ++wordCount;
-  }
-  std::cout << std::endl;
+enum TokenType { S, E, ID, PLUS, LPAREN, RPAREN, END };
 
-  file.close();
-  return wordCount;
+int parse_file(const std::string& filename)
+{
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Could not open the file!" << endl;
+        return -1;
+    }
+
+    streamsize size = file.tellg();
+    file.seekg(0, ios::beg);
+
+    char* buffer = new char[size + 1];
+    if (!file.read(buffer, size)) {
+        cerr << "Could not read the file!" << endl;
+        return -1;
+    }
+    buffer[size] = '\0';
+
+    vector<TokenType> tokens;
+    for (int i = 0; i < size; i++) {
+        switch (buffer[i]) {
+            case 'i':
+                tokens.push_back(ID);
+                break;
+            case 'd':
+                break;
+            case '+':
+                tokens.push_back(PLUS);
+                break;
+            case '(':
+                tokens.push_back(LPAREN);
+                break;
+            case ')':
+                tokens.push_back(RPAREN);
+                break;
+            case '$':
+                tokens.push_back(END);
+                break;
+            default:
+                cerr << "Invalid character in the file!" << endl;
+                return -1;
+        }
+    }
+
+    
+
+
+    file.close();
+    delete[] buffer;
+    
 }
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
-    return 1;
-  }
+int main(int argc, char* argv[])
+{
+    if (argc != 2) {
+        cerr << "Usage: " << argv[0] << " <filename>" << endl;
+        return 1;
+    }
 
-  std::string filename = argv[1];
-  int result = parse_file(filename);
+    string filename = argv[1];
+    int result = parse_file(filename);
 
-  std::cout << "The result is: " << result << std::endl;
+    cout << "The result is: " << result << endl;
 
-  return 0;
+    return 0;
 }

@@ -15,7 +15,7 @@ using namespace fdmj;
 #define StmList vector<Stm*>
 #define ExpList vector<Exp*>
 
-Program* constantPropagation(Program* root)
+Program* constantPropagate(Program* root)
 {
     if (root == nullptr)
         return nullptr;

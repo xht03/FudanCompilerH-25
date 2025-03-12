@@ -116,7 +116,7 @@ int main(int argc, const char* argv[])
     // --- constant propagation ---
 
     cout << "constantPropagation Rewriting AST..." << endl;
-    Program* root5 = constantPropagation(root4);
+    Program* root5 = constantPropagate(root4);
     delete root4;
 
     cout << "Convert rewrote AST to XML..." << endl;
