@@ -52,9 +52,6 @@ int parse_file(const std::string& filename)
         }
     }
 
-    
-
-
     file.close();
     delete[] buffer;
     

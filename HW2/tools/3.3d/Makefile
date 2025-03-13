@@ -5,7 +5,7 @@ TEST_DIR = ../../test/3.3d
 
 build:
 	@mkdir -p $(BUILD_DIR)
-	@bison -d -o $(BUILD_DIR)/main.tab.c main.y
+	@bison -d -o $(BUILD_DIR)/main.tab.c main.y -Wcounterexamples
 	@flex -o $(BUILD_DIR)/lex.yy.c main.l
 	@gcc -o $(BUILD_DIR)/main.out $(BUILD_DIR)/main.tab.c $(BUILD_DIR)/lex.yy.c -lfl
 

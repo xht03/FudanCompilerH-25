@@ -20,9 +20,9 @@ int main(int argc, char **argv)
 {
     yylex();
     if (accepted) {
-        printf("Accept!\n");
+        printf("accept\n");
     } else {
-        printf("Reject!\n");
+        printf("reject\n");
     }
     return 0;
 }

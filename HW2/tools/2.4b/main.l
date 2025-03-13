@@ -12,9 +12,9 @@ int mlen = 0, len = 0;
 <MATCHED>.                   { len += yyleng; }
 <INITIAL,MATCHED><<EOF>>     {
                                 if (len == mlen)
-                                    printf("Accept!\n");
+                                    printf("accept\n");
                                 else
-                                    printf("Reject!\n");
+                                    printf("reject\n");
                                 return 0;
                              }
 %%

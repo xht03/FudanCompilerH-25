@@ -5,49 +5,32 @@
 void yyerror(const char *s);
 int yylex(void);
 
-int brace_count = 0;            // Count of unmatched open brackets
-int paren_count[100] = {0};     // Count of unmatched open parentheses within each pair of brackets
-
 %}
 
 %token LPAREN RPAREN LBRACKET RBRACKET
 
 %%
 
-input:
-    | input expr
+S:  T S
+    | 
     ;
 
-expr:
-    LBRACKET { 
-        brace_count++;
-        paren_count[brace_count] = 0; 
-    }
-    | RBRACKET { 
-        if (brace_count > 0) {
-            paren_count[brace_count] = 0;
-            brace_count--;
-        } 
-        else return -1; 
-    }
-    | LPAREN { 
-        if (brace_count >= 0) 
-            paren_count[brace_count]++; 
-    }
-    | RPAREN { 
-        if (brace_count >= 0 && paren_count[brace_count] > 0) 
-            paren_count[brace_count]--; 
-        else return -1; 
-    }
+T:  LBRACKET U RBRACKET
+    | LPAREN S RPAREN
+    ;
+
+U:  T U
+    | LPAREN U
+    |
     ;
 
 %%
 
 int main() {
-    if (yyparse() == 0 && brace_count == 0 && paren_count[0] == 0) {
-        printf("Accept\n");
+    if (yyparse() == 0) {
+        printf("accept\n");
     } else {
-        printf("Reject\n");
+        printf("reject\n");
     }
     return 0;
 }
