@@ -13,6 +13,7 @@ clean:
 	@rm -rf $(BUILD_DIR)
 
 test: build
+	@echo "3.3d Testing:"
 	@for file in $(TEST_DIR)/*.txt; do \
         echo "Testing $$(basename $$file):"; \
         $(BUILD_DIR)/main.out < "$$file"; \
