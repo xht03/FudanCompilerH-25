@@ -9,6 +9,8 @@
 #include <cctype>
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
+#include "namemaps.hh"
+#include "semant.hh"
 #include "xml2ast.hh"
 #include "tinyxml2.hh"
 
@@ -23,15 +25,44 @@ using namespace tinyxml2;
 #define StmList vector<Stm*>
 #define ExpList vector<Exp*>
 
-Program* xml2ast(XMLElement *element) {
-    if (string(element->Name()) != "Program") {
+Name_Maps* create_NameMaps(XMLElement* xml_root); //forward declaration
+static AST_Semant_Map *global_semant_map = new AST_Semant_Map();
+
+Program* xml2ast(XMLElement *element, AST_Semant_Map **sm) {
+    if (string(element->Name()) != "FDMJAST") {
+        cerr << "Error: first element is not FDMJAST" << endl;
+        return nullptr;
+    }
+    XMLElement *nm_root = element->FirstChildElement();
+    XMLElement *program;
+    if (string(nm_root->Name()) == "NameMaps") {
+        global_semant_map->setNameMaps(create_NameMaps(nm_root));
+        program = nm_root->NextSiblingElement(); 
+    } else {
+        XMLElement *program = element->FirstChildElement();
+    }
+    if (string(program->Name()) != "Program") {
         cerr << "Error: Root element is not Program" << endl;
         return nullptr;
     }
-    return create_program(element);
+    Program* prog = create_program(program);
+    if (prog == nullptr) {
+        cerr << "Error: Failed to create Program" << endl;
+        return nullptr;
+    }
+    *sm = global_semant_map;
+#ifdef DEBUG
+    if (sm->getNameMaps() == nullptr) {
+        cerr << "----Error: No NameMaps found" << endl;
+        return nullptr;
+    } else {
+        sm->getNameMaps()->print();
+    }
+#endif
+    return prog;
 }
 
-Program* xml2ast(string xmlfilename) {
+Program* xml2ast(string xmlfilename, AST_Semant_Map **sm) {
     XMLDocument doc;
     if (doc.LoadFile(xmlfilename.c_str()) != XML_SUCCESS) {
         cerr << "Error: " << xmlfilename << " not found" << endl;
@@ -41,7 +72,7 @@ Program* xml2ast(string xmlfilename) {
         cerr << "Error: " << xmlfilename << " is not a valid XML file" << endl;
         return nullptr;
     }
-    return xml2ast(doc.RootElement());
+    return xml2ast(doc.RootElement(), sm);
 }
 
 static Pos *get_position(XMLElement *element) {
@@ -64,6 +95,57 @@ static Pos *get_position(XMLElement *element) {
         return nullptr;
     */
     return new Pos(bline, bpos, eline, epos);
+}
+
+static AST_Semant *get_semant(XMLElement *element) {
+#ifdef DEBUG
+    cout << "Getting semantic information from node " << element->Name() << endl;
+#endif
+    AST_Semant::Kind s_kind;
+    TypeKind typeKind = TypeKind::INT;
+    variant<monostate, string, int> type_par = monostate{};
+    bool lvalue = false;
+    bool has_semant_info = false; //go through the attributes to see if there is semantic info
+    const XMLAttribute *attr = element->FirstAttribute();
+    while (attr) {
+        string name = string(attr->Name());
+        string value = string(attr->Value());
+        //cout << "-----name=" << name << " value = " << value << endl;
+        if (name == "s_kind") {
+            if (value == "Value") { s_kind = AST_Semant::Kind::Value;
+            } else if (value == "MethodName") { s_kind = AST_Semant::Kind::MethodName;
+            } else if (value == "ClassName") { s_kind = AST_Semant::Kind::ClassName;
+            } else {
+                cerr << "Error: Unknown semantic kind" << endl;
+                return nullptr;
+            }
+            has_semant_info = true; //if we have s_kind, we should have the rest
+        } else if (name == "typeKind") {
+            if (value == "INT") { typeKind = TypeKind::INT;
+            } else if (value == "CLASS") { typeKind = TypeKind::CLASS;
+            } else if (value == "INTARRAY") { typeKind = TypeKind::ARRAY;
+            } else {
+                cerr << "Error: Unknown type kind: " << value << endl;
+                return nullptr;
+            }
+        } else if (name == "type_par") {
+            string type_par_str = string(attr->Value());
+            if (typeKind == TypeKind::ARRAY) {
+                type_par = stoi(type_par_str);
+            } else if (typeKind == TypeKind::CLASS) {
+                type_par = type_par_str;
+            } else {
+                cerr << "Error: Unknown type kind for type parameter" << endl;
+                return nullptr;
+            }
+        } else if (name == "lvalue") {
+            lvalue = string(attr->Value()) == "true"?true:false;
+        }
+        attr = attr->Next();
+    }
+    if (has_semant_info) 
+        return new AST_Semant(s_kind, typeKind, type_par, lvalue);
+    else return nullptr;
 }
 
 /*
@@ -136,6 +218,7 @@ vector<T*> *create_list(XMLElement *element, string tag) {
     variant<monostate, VarDecl*, MethodDecl*, Formal*, ClassDecl*, IntExp*> t = monostate{};
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
+        AST_Semant *se = get_semant(ce); //read the semant info of the node
         if (string(tag) == "VarDecl") {
             t = create_varDecl(ce);
         } else if (string(tag) == "MethodDecl") {
@@ -148,9 +231,12 @@ vector<T*> *create_list(XMLElement *element, string tag) {
             t = create_leafnode<IntExp>(ce, "IntExp", "val", ATTR_TYPE::INT);
         } else {
             cerr << "Error: Unknown element in list: " << ce->Name() << endl;
+            return nullptr;
         }
-        if (holds_alternative<T*>(t) == true) 
+        if (holds_alternative<T*>(t) == true) {
+            if (se != nullptr) global_semant_map->setSemant(get<T*>(t), se); //add semant to map
             list->push_back(get<T*>(t));
+        }
         else {
             cerr << "Error: Failed to create a " << tag << endl;
             return nullptr;
@@ -169,6 +255,7 @@ T* create_leafnode(XMLElement *element, string tag, string s_attr, ATTR_TYPE at)
         cerr << "Error: input Element is not " << tag << endl;
         return nullptr;
     }
+    AST_Semant* se = get_semant(element); //read the semant info of the node
     const XMLAttribute *attr = element->FirstAttribute();
     variant<IntExp*, IdExp*, OpExp*, BoolExp*> holding;
     while (attr) {
@@ -193,8 +280,10 @@ T* create_leafnode(XMLElement *element, string tag, string s_attr, ATTR_TYPE at)
         }
         attr = attr->Next();
     }
-    if (holds_alternative<T*>(holding) == true) 
+    if (holds_alternative<T*>(holding) == true)  {
+        if (se != nullptr) global_semant_map->setSemant(get<T*>(holding), se); //add semant to map
         return get<T*>(holding);
+    }
     else return nullptr;
 }
 
@@ -299,7 +388,7 @@ Type* create_type(XMLElement* element) {
     IdExp *tk = create_leafnode<IdExp>(element, "Type", "typeKind", ATTR_TYPE::ID);
     if (tk->id == "CLASS") typeKind = TypeKind::CLASS;
     else if (tk->id == "INT") typeKind = TypeKind::INT;
-    else if (tk->id == "ARRAY") typeKind = TypeKind::ARRAY;
+    else if (tk->id == "INTARRAY") typeKind = TypeKind::ARRAY;
     else {
         cerr << "Error: Unknown TypeKind!" << endl;
         return nullptr;
@@ -512,8 +601,8 @@ StmList* create_stm_list(XMLElement* element) {
 #endif
     StmList *sl = new StmList();
     if (element->NoChildren()) {
-        delete sl; sl = nullptr;
-        return sl;
+        //delete sl;
+        return nullptr;
     }
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
@@ -528,7 +617,6 @@ Nested* create_nested(XMLElement* element) {
 #ifdef DEBUG
     cout << "Creating Nested" << endl;
 #endif
-    StmList *sl = new StmList();
     if (string(element->Name()) != "Nested") {
         cerr << "Error: input Element is not Nested" << endl;
         return nullptr;
@@ -538,8 +626,7 @@ Nested* create_nested(XMLElement* element) {
         cerr << "Error: Nested: No StmList found in Nested" << endl;
         return nullptr;
     }
-    sl = create_stm_list(ce);
-    return new Nested(get_position(element), sl);
+    return new Nested(get_position(element), create_stm_list(ce));
 }
 
 If* create_if(XMLElement* element) {
@@ -877,6 +964,7 @@ BinaryOp* create_binaryOp(XMLElement *element) {
         cerr << "Error: input Element is not BinaryOp" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         if (string(ce->Name()) == "OpExp" )
@@ -896,7 +984,9 @@ BinaryOp* create_binaryOp(XMLElement *element) {
         cerr << "Error: BinaryOp: Missing expression" << endl;
         return nullptr;
     }
-    return new BinaryOp(get_position(element), exp1, op, exp2);
+    BinaryOp * bo = new BinaryOp(get_position(element), exp1, op, exp2);
+    if (se != nullptr) global_semant_map->setSemant(bo, se); //add semant to map
+    return bo;
 }
 
 UnaryOp* create_unaryOp(XMLElement* element) {
@@ -909,6 +999,7 @@ UnaryOp* create_unaryOp(XMLElement* element) {
         cerr << "Error: input Element is not UnaryOp" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         if (string(ce->Name()) == "OpExp" )
@@ -920,7 +1011,9 @@ UnaryOp* create_unaryOp(XMLElement* element) {
         }
         ce = ce->NextSiblingElement();
     }
-    return new UnaryOp(get_position(element), op, exp);
+    UnaryOp* uo = new UnaryOp(get_position(element), op, exp);
+    if (se != nullptr) global_semant_map->setSemant(uo, se); //add semant to map
+    return uo;
 }
 
 ArrayExp* create_arrayExp(XMLElement* element) {
@@ -933,6 +1026,7 @@ ArrayExp* create_arrayExp(XMLElement* element) {
         cerr << "Error: input Element is not ArrayExp" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         Exp *e = create_exp(ce);
@@ -940,7 +1034,9 @@ ArrayExp* create_arrayExp(XMLElement* element) {
         else if (exp2 == nullptr) exp2 = e;
         ce = ce->NextSiblingElement();
     }
-    return new ArrayExp(get_position(element), exp1, exp2);
+    ArrayExp * ae = new ArrayExp(get_position(element), exp1, exp2);
+    if (se != nullptr) global_semant_map->setSemant(ae, se); //add semant to map
+    return ae;
 }
 
 CallExp* create_callExp(XMLElement* element) {
@@ -954,6 +1050,7 @@ CallExp* create_callExp(XMLElement* element) {
         cerr << "Error: input Element is not CallExp" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         if (string(ce->Name()) == "ParList" ) {
@@ -977,7 +1074,9 @@ CallExp* create_callExp(XMLElement* element) {
     if (el != nullptr && el->size() == 0) {
         delete el; el = nullptr;
     }
-    return new CallExp(get_position(element), exp, id, el);
+    CallExp* cexp = new CallExp(get_position(element), exp, id, el);
+    if (se != nullptr) global_semant_map->setSemant(cexp, se); //add semant to map
+    return cexp;
 }
 
 ClassVar* create_classVar(XMLElement* element) {
@@ -990,24 +1089,8 @@ ClassVar* create_classVar(XMLElement* element) {
         cerr << "Error: input Element is not ClassVar" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
-    //updated to take care of two IdExp case (March 17, 2025)
-    while (ce) {
-        Exp *e = create_exp(ce);
-        if (exp == nullptr) { //the first must be object expression
-            exp = e;
-            ce = ce->NextSiblingElement();
-            continue;
-        } else {
-            if (e->getASTKind() != ASTKind::IdExp) {
-                cerr << "Error: ClassVar: second element is not an IdExpe" << endl;
-                return nullptr;
-            }
-            id = static_cast<IdExp*>(e);
-        }
-        ce = ce->NextSiblingElement();
-    }
-    /* updated to take care of two IdExp case (March 17, 2025)
     while (ce) {
         if (string(ce->Name()) == "IdExp" ) {
             id = create_leafnode<IdExp>(ce, "IdExp", "id", ATTR_TYPE::ID); 
@@ -1018,8 +1101,9 @@ ClassVar* create_classVar(XMLElement* element) {
         }
         ce = ce->NextSiblingElement();
     }
-    */
-    return new ClassVar(get_position(element), exp, id);
+    ClassVar* cv = new ClassVar(get_position(element), exp, id);
+    if (se != nullptr) global_semant_map->setSemant(cv, se); //add semant to map
+    return cv;
 }
 
 BoolExp* create_boolExp(XMLElement* element) {
@@ -1041,7 +1125,10 @@ This* create_this(XMLElement* element) {
         cerr << "Error: input Element is not This" << endl;
         return nullptr;
     }
-    return new This(get_position(element));
+    AST_Semant *se = get_semant(element); //read the semant info of the node
+    This *t = new This(get_position(element));
+    if (se != nullptr) global_semant_map->setSemant(t, se); //add semant to map
+    return t;
 }
 
 Length* create_length(XMLElement* element) {
@@ -1053,6 +1140,7 @@ Length* create_length(XMLElement* element) {
         cerr << "Error: input Element is not Length" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         Exp *e = create_exp(ce);
@@ -1060,7 +1148,9 @@ Length* create_length(XMLElement* element) {
         else cerr << "Error: Length: More than one expression in Length" << endl;
         ce = ce->NextSiblingElement();
     }
-    return new Length(get_position(element), exp);
+    Length *l = new Length(get_position(element), exp);
+    if (se != nullptr) global_semant_map->setSemant(l, se); //add semant to map
+    return l;
 }
 
 Esc* create_esc(XMLElement* element) {
@@ -1074,6 +1164,7 @@ Esc* create_esc(XMLElement* element) {
         cerr << "Error: input Element is not Esc" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         if (string(ce->Name()) == "StmList" ) {
@@ -1094,7 +1185,9 @@ Esc* create_esc(XMLElement* element) {
     if (sl != nullptr && sl->size() == 0) {
         delete sl; sl = nullptr;
     }
-    return new Esc(get_position(element), sl, exp);
+    Esc *esc = new Esc(get_position(element), sl, exp);
+    if (se != nullptr) global_semant_map->setSemant(esc, se); //add semant to map
+    return esc;
 }
 
 GetInt* create_getInt(XMLElement* element) {
@@ -1105,7 +1198,10 @@ GetInt* create_getInt(XMLElement* element) {
         cerr << "Error: input Element is not GetInt" << endl;
         return nullptr;
     }
-    return new GetInt(get_position(element));
+    AST_Semant *se = get_semant(element); //read the semant info of the node
+    GetInt *gi = new GetInt(get_position(element));
+    if (se != nullptr) global_semant_map->setSemant(gi, se); //add semant to map
+    return gi;
 }
 
 GetCh* create_getCh(XMLElement* element) {
@@ -1116,7 +1212,10 @@ GetCh* create_getCh(XMLElement* element) {
         cerr << "Error: input Element is not GetCh" << endl;
         return nullptr;
     }
-    return new GetCh(get_position(element));
+    AST_Semant *se = get_semant(element); //read the semant info of the node
+    GetCh *gc = new GetCh(get_position(element));
+    if (se != nullptr) global_semant_map->setSemant(gc, se); //add semant to map
+    return gc;
 }
 
 GetArray* create_getArray(XMLElement* element) {
@@ -1128,6 +1227,7 @@ GetArray* create_getArray(XMLElement* element) {
         cerr << "Error: input Element is not GetArray" << endl;
         return nullptr;
     }
+    AST_Semant *se = get_semant(element); //read the semant info of the node
     XMLElement *ce = element->FirstChildElement();
     while (ce) {
         Exp *e = create_exp(ce);
@@ -1143,7 +1243,9 @@ GetArray* create_getArray(XMLElement* element) {
         cerr << "Error: GetArray: No expression in GetArray" << endl;
         return nullptr; //fail to get an expression
     }
-    return new GetArray(get_position(element), exp);
+    GetArray *ga = new GetArray(get_position(element), exp);
+    if (se != nullptr) global_semant_map->setSemant(ga, se); //add semant to map
+    return ga;
 }
 
 /*
@@ -1182,3 +1284,88 @@ OpExp* create_opExp(XMLElement* element) {
 
 
 */
+
+Name_Maps* create_NameMaps(XMLElement* xml_root) {
+    Name_Maps* name_maps = new Name_Maps();
+    if (xml_root == nullptr) return nullptr;
+#ifdef DEBUG
+    std::cout << "Reading NameMaps" << endl;
+#endif
+
+    for (XMLElement* xml_class = xml_root->FirstChildElement("Class"); 
+                xml_class != nullptr; xml_class = xml_class->NextSiblingElement("Class")) {
+        string class_name = xml_class->Attribute("name");
+        name_maps->add_class(class_name);
+#ifdef DEBUG
+        std::cout << "Creating Class: " << class_name << endl;
+#endif
+        const XMLAttribute* attr = xml_class->FirstAttribute();
+        while (attr) {
+            if (string(attr->Name()) == "ancestor") {
+                string ancestor_name = attr->Value();
+                name_maps->add_class_hiearchy(class_name, ancestor_name);
+#ifdef DEBUG
+            std::cout << "Adding Ancestor: " << ancestor_name << " to " << class_name << endl;
+#endif
+            }
+            attr = attr->Next();
+        }
+
+        for (XMLElement* xml_var = xml_class->FirstChildElement("Var"); 
+                xml_var != nullptr; xml_var = xml_var->NextSiblingElement("Var")) {
+            string var_name = xml_var->Attribute("id");
+            XMLElement *var_decl_node = xml_var->FirstChildElement("VarDecl");
+            if (var_decl_node == nullptr) {
+                cerr << "Error: VarDecl not found for var " << var_name << " in class " << class_name << endl;
+                continue;
+            }
+            VarDecl* var_decl = create_varDecl(var_decl_node);
+            name_maps->add_class_var(class_name, var_name, var_decl);
+#ifdef DEBUG
+        cout << "Reading var " << var_name << " for " << class_name << endl;
+#endif
+        }
+
+        for (XMLElement* xml_method = xml_class->FirstChildElement("Method"); 
+                xml_method != nullptr; xml_method = xml_method->NextSiblingElement("Method")) {
+            string method_name = xml_method->Attribute("name");
+            name_maps->add_method(class_name, method_name);
+#ifdef DEBUG
+            cout << "Reading method " << method_name << " for " << class_name << endl;
+#endif
+            vector<string> formal_names; // List to store formal names
+            for (XMLElement* xml_formal = xml_method->FirstChildElement("Formal"); 
+                    xml_formal != nullptr; xml_formal = xml_formal->NextSiblingElement("Formal")) {
+                string formal_name = xml_formal->Attribute("id");
+                XMLElement *formal_node = xml_formal->FirstChildElement("Formal");
+                if (formal_node == nullptr) {
+                    cerr << "Error: Formal not found for formal " << formal_name << " in method " << method_name << " in class " << class_name << endl;
+                    continue;
+                }
+                Formal* formal = create_formal(formal_node);
+                name_maps->add_method_formal(class_name, method_name, formal_name, formal);
+                formal_names.push_back(formal_name); // Add formal_name to the list
+#ifdef DEBUG
+                cout << "Reading formal " << formal_name << " for " << method_name << " in " << class_name << endl;
+#endif
+            }
+            // Add the list of formal names to methodFormalList
+            name_maps->add_method_formal_list(class_name, method_name, formal_names);
+
+            for (XMLElement* xml_var = xml_method->FirstChildElement("Var"); 
+                    xml_var != nullptr; xml_var = xml_var->NextSiblingElement("Var")) {
+                string var_name = xml_var->Attribute("id");
+                XMLElement *var_decl_node = xml_var->FirstChildElement("VarDecl");
+                VarDecl* var_decl = create_varDecl(var_decl_node);
+                name_maps->add_method_var(class_name, method_name, var_name, var_decl);
+#ifdef DEBUG
+                cout << "Reading var " << var_name << " for " << method_name << " in " << class_name << endl;
+#endif
+            }
+        }
+    }
+#ifdef DEBUG
+    cout << "NameMaps created" << endl;
+#endif
+    return name_maps;
+}
