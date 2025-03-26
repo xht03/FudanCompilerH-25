@@ -47,6 +47,37 @@ identifier      [a-z_A-Z][a-z_A-Z0-9]*
 <INITIAL>"int" { return Token::INT; }
 <INITIAL>"main" { return Token::MAIN; }
 <INITIAL>"return" { return Token::RETURN; }
+
+<INITIAL>"class" { return Token::CLASS; }
+<INITIAL>"if" { return Token::IF; }
+<INITIAL>"else" { return Token::ELSE; }
+<INITIAL>"while" { return Token::WHILE; }
+<INITIAL>"continue" { return Token::CONTINUE; }
+<INITIAL>"break" { return Token::BREAK; }
+<INITIAL>"extends"  { return Token::EXTENDS; }    
+<INITIAL>"true"     { return Token::TRUE; }         
+<INITIAL>"false"    { return Token::FALSE; }        
+<INITIAL>"this"     { return Token::THIS; }         
+<INITIAL>"length"   { return Token::LENGTH; }       
+<INITIAL>"getint"   { return Token::GETINT; }       
+<INITIAL>"getch"    { return Token::GETCH; }        
+<INITIAL>"getarray" { return Token::GETARRAY; }     
+<INITIAL>"putint"   { return Token::PUTINT; }       
+<INITIAL>"putch"    { return Token::PUTCH; }        
+<INITIAL>"putarray" { return Token::PUTARRAY; }     
+<INITIAL>"starttime" { return Token::STARTTIME; }    
+<INITIAL>"stoptime" { return Token::STOPTIME; }     
+
+<INITIAL>"==" { return Token::EQ; }
+<INITIAL>"!=" { return Token::NE; }
+<INITIAL>"<"  { return Token::LT; }
+<INITIAL>"<=" { return Token::LE; }
+<INITIAL>">"  { return Token::GT; }
+<INITIAL>">=" { return Token::GE; }
+<INITIAL>"&&" { return Token::AND; }
+<INITIAL>"||" { return Token::OR; }
+<INITIAL>"!"  { return Token::NOT; }
+
 <INITIAL>"+" { return Token::ADD; }
 <INITIAL>"-" { return Token::MINUS; }
 <INITIAL>"*" { return Token::TIMES; }

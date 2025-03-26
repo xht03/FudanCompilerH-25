@@ -57,33 +57,30 @@ namespace fdmj
 
     class ASTLexer : public yy_ast_FlexLexer
     {
-        //initialize the line and column numbers. 
-        //Each time a newline is encountered, the line number should increment and column reset
+        // 位置信息
         std::size_t currentLine = 1;
         std::size_t currentColumn = 1;
         
-        //These are the values that the lexer will return
-        AST_YYSTYPE *yylval = nullptr;
-        location_t *yylloc = nullptr;
+        // These are the values that the lexer will return
+        AST_YYSTYPE *yylval = nullptr;      // 语义值
+        location_t *yylloc = nullptr;       // 位置信息
         
          
-        //This is the function that will copy the value of the token to yylval
-        //The lexer will call this function to copy the value of the token to yylval
-        //We will use it when a token is matched and need to return a value in yylval.
-        void copyValue(const string s) { yylval->s = s; }
+        // lexer 将调用此函数，将匹配的词法单元的值复制到 yylval
+        // 当一个词法单元被匹配并且需要将值返回到 yylval 时，我们会使用这个函数。
+        void copyValue(const string s) { yylval->s = s; }   
         void copyValue(const int n) { yylval->i = n;}
         //void copyValue(const ASSTNode *node) { yylval->node = nullptr; exit(EXIT_FAILURE);} //the lexer shouldnt see node!
 
-        //this is the function that will copy the location of the token to yylloc
-        //this is needed in order to keep track of the location of the token
-        //we will use it for YY_USER_ACTION, i.e., whenever a pattern in matched
+        // 这是一个将词法单元的位置复制到 yylloc 的函数
+        // 我们将在 YY_USER_ACTION 中使用它，即每当一个模式被匹配时
         void copyLocation() { *yylloc = location_t(currentLine, currentColumn, currentLine, yyleng+currentColumn-1); 
                                currentColumn += yyleng; }  
         
     public:
         //The API to this lexer 
-        ASTLexer(std::istream &in, const bool debug) : yy_ast_FlexLexer(&in) { yy_ast_FlexLexer::set_debug(debug); }
-        int yylex(AST_YYSTYPE *const lval, location_t *const lloc);
+        ASTLexer(std::istream &in, const bool debug) : yy_ast_FlexLexer(&in) { yy_ast_FlexLexer::set_debug(debug); }    // 构造函数
+        int yylex(AST_YYSTYPE *const lval, location_t *const lloc);     // 词法分析函数
     };
 } //namespace fdmj
 #endif

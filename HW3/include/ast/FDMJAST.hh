@@ -72,15 +72,37 @@
         Type *type = nullptr;
         IdExp  *id = nullptr;
         variant<monostate, IntExp*, vector<IntExp*>*> init;
-        //note that nullptr means no init. vector.size=0 means empty array initialization
+
+        /**
+         * 对应的产生式：
+         * CLASS ID ID ';'
+         * INT ID ';'
+         * INT '[' ']' ID ';'
+         * INT '[' NUM ']' ID ';'
+         */
         VarDecl(Pos *pos, Type *type, IdExp  *id): 
                 AST(pos), type(type), id(id) {init = std::monostate{};}
+
+        /**
+         * 对应的产生式：
+         * INT ID '=' CONST ';'
+         */
         VarDecl(Pos *pos, Type *type, IdExp  *id, IntExp *init_int): 
                 AST(pos), type(type), id(id), init(init_int) {}
+
+        /**
+         * 对应的产生式：
+         * INT '[' ']' ID '=' '{' CONSTLIST '}' ';'
+         * INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'
+         */
         VarDecl(Pos *pos, Type *type, IdExp  *id, vector<IntExp*> *init_array):
                 AST(pos), type(type), id(id), init(init_array) {}
+
+        // 通用构造函数
+        // nullptr 表示未初始化。vector.size=0 表示空数组初始化
         VarDecl(Pos *pos, Type *type, IdExp *id, variant<monostate, IntExp*, vector<IntExp*>*> init): 
                 AST(pos), type(type), id(id), init(init) {}
+
         ASTKind getASTKind() override {return ASTKind::VarDecl;}
         VarDecl* clone() override;
         void accept(AST_Visitor &v) override {v.visit(this);}
