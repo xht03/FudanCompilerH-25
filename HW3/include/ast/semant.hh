@@ -10,9 +10,7 @@
 using namespace std;
 using namespace fdmj;
 
-//this is for denote the semantic information of an AST node
-//mostly for expressions and variables.
-//Useful for type checking and IR (tree) generation
+// 表示 AST 节点的语义信息（主要用于表达式和变量）
 class AST_Semant {
 public:
     enum Kind {Value, MethodName, ClassName};
@@ -22,9 +20,9 @@ public:
     //ClassVarName - a class variable name (type determined by class)
 private:
     Kind s_kind;
-    TypeKind typeKind; //enum class TypeKind {CLASS/OBJECT = 0, INT = 1, ARRAY = 2};
-    variant<monostate, string, int> type_par; //string for class name, int for array arity
-    bool lvalue; //if the expression is an lvalue
+    TypeKind typeKind;                          // {CLASS/OBJECT = 0, INT = 1, ARRAY = 2};
+    variant<monostate, string, int> type_par;   // string for class name, int for array arity
+    bool lvalue;                                // 表达式是否是左值
 public:
     AST_Semant(AST_Semant::Kind s_kind, TypeKind typeKind, variant<monostate, string, int> type_par, bool lvalue) :
             s_kind(s_kind), typeKind(typeKind), type_par(type_par), lvalue(lvalue) {}
@@ -46,7 +44,7 @@ public:
     }
 };
 
-//this is to map an AST node to its semantic information
+// 将 AST 节点映射到其语义信息
 class AST_Semant_Map {
 private:
     Name_Maps *name_maps;
@@ -78,9 +76,11 @@ public:
 
 class AST_Semant_Visitor : public AST_Visitor {
 private:
-    AST_Semant_Map *semant_map; //this is the semantic information map for all (sub)expressions
-    Name_Maps* const name_maps; //this is the map for all names in the program
+    AST_Semant_Map *semant_map;     // 所有表达式的语义信息映射
+    Name_Maps* const name_maps;     // 程序中所有名称的映射
+
     //you may add other members here 
+    
 public:
     //Change this constructor if more members are added above (if necessary)
     AST_Semant_Visitor(Name_Maps* name_maps) : name_maps(name_maps) {

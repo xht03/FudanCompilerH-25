@@ -94,10 +94,32 @@
 %type <formalList> FORMALLIST
 %type <formalList> FORMALREST
 
-
-
 %start PROG   // 指定起始符号
 %expect 0     // 语法冲突的容忍度 (0 表示期望没有移进/归约冲突)
+
+
+// 无结合性，不允许连续使用
+/* %nonassoc ELSE
+%nonassoc LOWER_THAN_ELSE */
+
+// 优先级从低到高排列
+%left ','                       // 逗号（用于 ExpList 和 FormalList）
+%right '='                      // 赋值运算符
+%left OR                        // 逻辑或 ||
+%left AND                       // 逻辑与 &&
+%left EQ NE                     // 相等性运算符 == !=
+%left LT LE GT GE               // 关系运算符 < <= > >=
+%left ADD MINUS                 // 加减运算符 + -
+%left TIMES DIVIDE              // 乘除运算符 * /
+%right UMINUS                   // 一元减号 - （优先级高于二元加减，但低于乘除）
+%right NOT                      // 一元逻辑非 !
+%left '.'                       // 成员访问 .
+%left '[' ']'                   // 数组索引 []
+%left '(' ')'                   // 括号（最高优先级）
+
+%nonassoc IFX       // 无 else 的 if 语句
+%nonassoc ELSE      // else 分支
+
 
 %%
 
@@ -172,8 +194,7 @@ VARDECL: CLASS ID ID ';'
 #ifdef DEBUG
     cerr << "VarDecl: int[] id = {constlist}" << endl;
 #endif
-    IntExp *num = new IntExp(p, $7->size());
-    $$ = new VarDecl(p, new Type(p, num), $4, $7);
+    $$ = new VarDecl(p, new Type(p, new IntExp(p, 0)), $4, $7);
   }
   | INT '[' NONNEGATIVEINT ']' ID ';'
   {
@@ -188,8 +209,7 @@ VARDECL: CLASS ID ID ';'
 #ifdef DEBUG
     cerr << "VarDecl: int[num] id = {constlist}" << endl;
 #endif
-    IntExp *num = new IntExp(p, $3);
-    $$ = new VarDecl(p, new Type(p, num), $5, $8);
+    $$ = new VarDecl(p, new Type(p, new IntExp(p, $3)), $5, $8);
   }
   ;
 
@@ -222,7 +242,7 @@ CONSTLIST: /* empty */
     cerr << "CONSTLIST: const constrest" << endl;
 #endif
     vector<IntExp*> *v = $2;
-    v->push_back(new IntExp(p, $1));
+    v->push_back($1);
     rotate(v->begin(), v->end() - 1, v->end());
     $$ = v;
   }
@@ -240,7 +260,7 @@ CONSTREST: /* empty */
     cerr << "CONSTREST: , const constrest" << endl;
 #endif
     vector<IntExp*> *v = $3;
-    v->push_back(new IntExp(p, $2));
+    v->push_back($2);
     rotate(v->begin(), v->end() - 1, v->end());
     $$ = v;
   }
@@ -270,7 +290,14 @@ STM: '{' STMLIST '}'
 #ifdef DEBUG
     cerr << "STM:{STMLIST}" << endl;
 #endif
-
+  $$ = new Nested(p, $2);
+  }
+  | IF '(' EXP ')' STM %prec IFX
+  {
+#ifdef DEBUG
+    cerr << "If" << endl;
+#endif
+    $$ = new If(p, $3, $5);
   }
   | IF '(' EXP ')' STM ELSE STM
   {
@@ -278,13 +305,6 @@ STM: '{' STMLIST '}'
     cerr << "IfElse" << endl;
 #endif
     $$ = new If(p, $3, $5, $7);
-  }
-  | IF '(' EXP ')' STM
-  {
-#ifdef DEBUG
-    cerr << "If" << endl;
-#endif
-    $$ = new If(p, $3, $5);
   }
   | WHILE '(' EXP ')' STM
   {
@@ -359,16 +379,16 @@ STM: '{' STMLIST '}'
   | STARTTIME '(' ')' ';'
   {
 #ifdef DEBUG
-    cerr << "StartTime" << endl;
+    cerr << "Starttime" << endl;
 #endif
-    $$ = new StartTime(p);
+    $$ = new Starttime(p);
   }
   | STOPTIME '(' ')' ';'
   {
 #ifdef DEBUG
-    cerr << "StopTime" << endl;
+    cerr << "Stoptime" << endl;
 #endif
-    $$ = new StopTime(p);
+    $$ = new Stoptime(p);
   }
   ;
 
@@ -540,7 +560,7 @@ EXP: NONNEGATIVEINT
     Pos *p1 = new Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
     $$ = new UnaryOp(p, new OpExp(p1, "!"), $2);
   }
-  | MINUS EXP
+  | MINUS EXP %prec UMINUS
   {
 #ifdef DEBUG
     cerr << "- EXP" << endl;
@@ -567,7 +587,7 @@ EXP: NONNEGATIVEINT
 #ifdef DEBUG
     cerr << "EXP . ID" << endl;
 #endif
-    $$ = new CallExp(p, $1, $3);
+    $$ = new ClassVar(p, $1, $3);
   }
   | EXP '.' ID '(' EXPLIST ')'
   {
@@ -657,7 +677,7 @@ CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
 #ifdef DEBUG
     cerr << "ClassDecl with extends" << endl;
 #endif
-    $$ = new ClassDecl(p, $3, new IdExp(p, $5), $7, $8);
+    $$ = new ClassDecl(p, $3, $5, $7, $8);
   }
   ;
 
@@ -760,19 +780,6 @@ ID: IDENTIFIER
     $$ = new IdExp(p, $1);
   }
   ;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

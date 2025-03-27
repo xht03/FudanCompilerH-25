@@ -38,7 +38,7 @@
     class ClassDecl: public AST {
     public:
         IdExp *id = nullptr;
-        IdExp *eid = nullptr; // nullptr if not assigned
+        IdExp *eid = nullptr; // 继承关系 (如果未赋值，则为 nullptr)
         vector<VarDecl*> *vdl = new vector<VarDecl*>();
         vector<MethodDecl*> *mdl = new vector<MethodDecl*>();
         ClassDecl(Pos *pos, IdExp* id, vector<VarDecl*> *vdl, vector<MethodDecl*> *mdl):
@@ -59,7 +59,7 @@
         Type(Pos *pos, IdExp *cid): 
             AST(pos), typeKind(TypeKind::CLASS), cid(cid) {}
         Type(Pos *pos, IntExp *arity): 
-            AST(pos), typeKind(TypeKind::ARRAY), arity(arity) {} //array must have arity=0
+            AST(pos), typeKind(TypeKind::ARRAY), arity(arity) {} //array must have arity = 0
         Type(Pos *pos, TypeKind typeKind, IdExp *cid, IntExp *arity): 
             AST(pos), typeKind(typeKind), cid(cid), arity(arity) {}
         ASTKind getASTKind() override {return ASTKind::Type;}
