@@ -13,10 +13,10 @@ using namespace fdmj;
 // 表示 AST 节点的语义信息（主要用于表达式和变量）
 class AST_Semant {
 public:
-    enum Kind {Value, MethodName, ClassName};
+    enum Kind {Value, MethodName, ClassName};   // AST 节点的语义信息种类
     //Value - a value, has a typeKind (any calculation result)
-    //MethodName - a method name, has a typeKind (need: class id)
-    //ClassName - a class name, has a typeKind (need class id)
+    //MethodName - a method name (need: class id)
+    //ClassName - a class name (need class id)
     //ClassVarName - a class variable name (type determined by class)
 private:
     Kind s_kind;
@@ -80,11 +80,17 @@ private:
     Name_Maps* const name_maps;     // 程序中所有名称的映射
 
     //you may add other members here 
-    
+    string current_class;           // 当前类的名称
+    string current_method;          // 当前方法的名称
+    bool is_in_while;               // 是否在 while 循环中
+
 public:
     //Change this constructor if more members are added above (if necessary)
     AST_Semant_Visitor(Name_Maps* name_maps) : name_maps(name_maps) {
         semant_map = new AST_Semant_Map();
+        current_class = "";
+        current_method = "";
+        is_in_while = false;
     }
     AST_Semant_Map* getSemantMap() { return semant_map; }
 

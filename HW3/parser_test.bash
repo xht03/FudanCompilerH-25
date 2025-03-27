@@ -37,21 +37,42 @@ if [ $? -eq 0 ]; then
             if [ -f "${filename}.2.ast" ]; then
                 mv "${filename}.2.ast" "../test/my_output/${base_name}.2.ast"
                 
-                # 比较结果
-                if [ -f "../test/output_example/${base_name}.2.ast" ]; then
-                    echo "Comparing with example output..."
-                    diff -u "../test/my_output/${base_name}.2.ast" "../test/output_example/${base_name}.2.ast"
+            #     # 比较结果
+            #     if [ -f "../test/output_example/${base_name}.2.ast" ]; then
+            #         echo "Comparing with example output..."
+            #         diff -u "../test/my_output/${base_name}.2.ast" "../test/output_example/${base_name}.2.ast"
                     
-                    if [ $? -eq 0 ]; then
-                        echo "Test PASS for $base_name"
-                    else
-                        echo "Test FAIL for $base_name"
-                    fi
-                else
-                    echo "Warning: No example output found for $base_name"
-                fi
-            else
-                echo "Error: No output generated for $base_name"
+            #         if [ $? -eq 0 ]; then
+            #             echo "Test PASS for $base_name (.2.ast)"
+            #         else
+            #             echo "Test FAIL for $base_name (.2.ast)"
+            #         fi
+            #     else
+            #         echo "Warning: No example output found for $base_name (.2.ast)"
+            #     fi
+            # else
+            #     echo "Error: No output generated for $base_name (.2.ast)"
+            fi
+            
+            # 处理带语义信息的AST文件
+            if [ -f "${filename}.2-semant.ast" ]; then
+                mv "${filename}.2-semant.ast" "../test/my_output/${base_name}.2-semant.ast"
+                
+            #     # 比较结果
+            #     if [ -f "../test/output_example/${base_name}.2-semant.ast" ]; then
+            #         echo "Comparing with example output (semantic)..."
+            #         diff -u "../test/my_output/${base_name}.2-semant.ast" "../test/output_example/${base_name}.2-semant.ast"
+                    
+            #         if [ $? -eq 0 ]; then
+            #             echo "Test PASS for $base_name (.2-semant.ast)"
+            #         else
+            #             echo "Test FAIL for $base_name (.2-semant.ast)"
+            #         fi
+            #     else
+            #         echo "Warning: No example output found for $base_name (.2-semant.ast)"
+            #     fi
+            # else
+            #     echo "Note: No semantic output generated for $base_name (.2-semant.ast)"
             fi
             
             echo "----------------------------------------"

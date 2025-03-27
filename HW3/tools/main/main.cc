@@ -11,7 +11,7 @@ using namespace std;
 using namespace fdmj;
 using namespace tinyxml2;
 
-#define with_location_info false
+#define with_location_info true
 // false means no location info in the AST XML files
 
 Program *prog();
@@ -77,17 +77,17 @@ int main(int argc, const char *argv[]) {
     std::cout << "Semantic analysis..." << std::endl;
     std::cout << "--Making Name Maps..." << endl;
     Name_Maps *name_maps = makeNameMaps(root); 
-    // std::cout << "--Analyzing Semantics..." << endl;
-    // AST_Semant_Map *semant_map = semant_analyze(root); 
+    std::cout << "--Analyzing Semantics..." << endl;
+    AST_Semant_Map *semant_map = semant_analyze(root); 
 
-    // cout << "Convert AST to XML with Semantic Info..." << endl;
-    // x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
+    cout << "Convert AST to XML with Semantic Info..." << endl;
+    x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
 
-    // if (x->Error()) {
-    //     std::cout << "AST is not valid when converting from AST with Semant Info!" << endl;
-    //     return EXIT_FAILURE;  
-    // }
+    if (x->Error()) {
+         std::cout << "AST is not valid when converting from AST with Semant Info!" << endl;
+         return EXIT_FAILURE;  
+    }
 
-    // x->SaveFile(file_ast_semant.c_str());
+    x->SaveFile(file_ast_semant.c_str());
     return EXIT_SUCCESS;
 }

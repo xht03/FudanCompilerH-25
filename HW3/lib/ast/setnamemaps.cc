@@ -45,13 +45,8 @@ void AST_Name_Map_Visitor::visit(MainMethod* node) {
     current_method = "main";
 
     // 添加主方法（和空类名）
-    if (!name_maps->add_method("", "main")) {
-        cerr << "Error: Main method already exists (1)" << endl;
-        return;
-    }
-    
-    if (!name_maps->add_method("", "main")) {
-        cerr << "Error: Main method already exists (2)" << endl;
+    if (!name_maps->add_method("", "main", new Type(node->getPos()))) {
+        cerr << "Error: Main method already exists" << endl;
         return;
     }
 
@@ -174,7 +169,7 @@ void AST_Name_Map_Visitor::visit(MethodDecl* node) {
     current_method = node->id->id;
 
     // 添加方法到当前类
-    if (!name_maps->add_method(current_class, current_method)) {
+    if (!name_maps->add_method(current_class, current_method, node->type)) {
         cerr << "Error: Method " << current_method << " in class " << current_class << " already exists" << endl;
         current_method = "";
         return;

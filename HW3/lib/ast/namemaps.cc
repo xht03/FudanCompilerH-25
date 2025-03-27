@@ -12,8 +12,6 @@ using namespace std;
 using namespace fdmj;
 
 Name_Maps* makeNameMaps(Program* node) {
-    std::cout << "TODO" << std::endl;
-    return nullptr;
     AST_Name_Map_Visitor name_visitor;
     node->accept(name_visitor);
     return name_visitor.getNameMaps();
@@ -82,12 +80,21 @@ bool Name_Maps::is_method(string class_name, string method_name) {
     return methods.find(p) != methods.end();
 }
 
-bool Name_Maps::add_method(string class_name, string method_name) {
+bool Name_Maps::add_method(string class_name, string method_name, Type* return_type) {
     if (Name_Maps::is_method(class_name, method_name)) {
         return false;
     }
-    methods.insert(pair<string, string>(class_name, method_name));
+    pair<string, string> key(class_name, method_name);
+    methods[key] = return_type;
     return true;
+}
+
+Type* Name_Maps::get_method(string class_name, string method_name) {
+    if (!Name_Maps::is_method(class_name, method_name)) {
+        return nullptr;
+    }
+    pair<string, string> key(class_name, method_name);
+    return methods[key];
 }
 
 bool Name_Maps::is_class_var(string class_name, string var_name) {
@@ -192,7 +199,7 @@ void Name_Maps::print() {
     cout << endl;
     cout << "Methods: ";
     for (auto m : methods) {
-        cout << m.first << "->" << m.second << " ; ";
+        cout << (m.first).first << "->" << (m.first).second << "->" << m.second << " ; ";
     }
     cout << endl;
     cout << "Class Variables: ";
