@@ -163,8 +163,7 @@ enum class ASTKind {
 enum class TypeKind {
     CLASS = 0,
     INT = 1,
-    ARRAY = 2,
-    UNDEFINED = 3,
+    ARRAY = 2
 };
 
 // some helper functions for AST

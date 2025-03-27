@@ -11,1449 +11,841 @@
 using namespace std;
 using namespace fdmj;
 
-
-AST_Semant_Map* semant_analyze(Program* node) {
-    // std::cerr << "Start Semantic Analysis" << std::endl;
+// 对外接口函数
+AST_Semant_Map* semant_analyze(Program* node)
+{
     if (node == nullptr) {
-        return nullptr;
+        cerr << "semant_analyze: 程序为空" << endl;
+        exit(1);
     }
+
+    // 构造名称映射
     Name_Maps* name_maps = makeNameMaps(node);
     AST_Semant_Visitor semant_visitor(name_maps);
+
+    // 执行语义分析
     semant_visitor.visit(node);
-    std::cerr << "Semantic Analysis Done" << std::endl;
     return semant_visitor.getSemantMap();
 }
 
-
-/**
- * PROG -> MAINMETHOD CLASSDECLLIST
- */
-void AST_Semant_Visitor::visit(Program* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Program" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 访问主方法
-    if (node->main != nullptr) {
-        node->main->accept(*this);
+// 判断类型是否相同
+bool AST_Semant_Visitor::is_assignable(AST_Semant* left, AST_Semant* right)
+{
+    if (left == nullptr || right == nullptr)
+        return false;
+    if (left->get_kind() != AST_Semant::Kind::Value || right->get_kind() != AST_Semant::Kind::Value)
+        return false;
+    if (left->get_type() != right->get_type())
+        return false;
+    // 判断是否为左值
+    if (!left->is_lvalue())
+        return false;
+    // 判断类是否相同 或可向上转型
+    if (left->get_type() == TypeKind::CLASS) {
+        string left_class = get<string>(left->get_type_par());
+        string right_class = get<string>(right->get_type_par());
+        if (!name_maps->is_class(left_class) || !name_maps->is_class(right_class))
+            return false;
+        if (left_class != right_class) {
+            set<string> right_ancestors = name_maps->get_ancestors(right_class);
+            if (right_ancestors.find(left_class) == right_ancestors.end())
+                return false;
+        }
     }
+    // 判断数组维数是否相同
+    if (left->get_type() == TypeKind::ARRAY) {
+        int left_arity = get<int>(left->get_type_par());
+        int right_arity = get<int>(right->get_type_par());
+        if (left_arity != right_arity)
+            return false;
+    }
+    return true;
+}
 
-    // 访问所有类声明
-    if (node->cdl != nullptr) {
-        for (auto cl : *(node->cdl)) {
-            cl->accept(*this);
+// 判断类型是否相同
+bool AST_Semant_Visitor::is_assignable(Type* left, AST_Semant* right)
+{
+    if (left == nullptr || right == nullptr)
+        return false;
+    if (right->get_kind() != AST_Semant::Kind::Value)
+        return false;
+    if (left->typeKind != right->get_type())
+        return false;
+    // 判断类是否相同 或可向上转型
+    if (left->typeKind == TypeKind::CLASS) {
+        string left_class = left->cid->id;
+        string right_class = get<string>(right->get_type_par());
+        if (!name_maps->is_class(left_class) || !name_maps->is_class(right_class))
+            return false;
+        if (left_class != right_class) {
+            set<string> right_ancestors = name_maps->get_ancestors(right_class);
+            if (right_ancestors.find(left_class) == right_ancestors.end())
+                return false;
+        }
+    }
+    // 判断数组维数是否相同
+    if (left->typeKind == TypeKind::ARRAY) {
+        int left_arity = left->arity->val;
+        int right_arity = get<int>(right->get_type_par());
+        if (left_arity != right_arity)
+            return false;
+    }
+    return true;
+}
+
+// 判断是否为类
+bool AST_Semant_Visitor::is_class(AST_Semant* obj_semant)
+{
+    if (obj_semant == nullptr)
+        return false;
+    if (obj_semant->get_kind() != AST_Semant::Kind::Value || obj_semant->get_type() != TypeKind::CLASS)
+        return false;
+    string class_name = get<string>(obj_semant->get_type_par());
+    return name_maps->is_class(class_name);
+}
+
+// 从Type构造AST_Semant
+AST_Semant* AST_Semant_Visitor::build_semant(Type* type, bool is_lvalue)
+{
+    if (type->typeKind == TypeKind::CLASS)
+        return new AST_Semant(AST_Semant::Kind::Value, TypeKind::CLASS, type->cid->id, is_lvalue);
+    else if (type->typeKind == TypeKind::ARRAY)
+        return new AST_Semant(AST_Semant::Kind::Value, TypeKind::ARRAY, type->arity->val, is_lvalue);
+    else if (type->typeKind == TypeKind::INT)
+        return new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), is_lvalue);
+    cerr << "build_semant: 未知类型" << endl;
+    exit(1);
+}
+
+// 程序: 主方法 类声明列表
+// PROG: MAINMETHOD CLASSDECLLIST
+void AST_Semant_Visitor::visit(Program* node)
+{
+    // 调用accept(visit)
+    node->main->accept(*this);
+    for (auto cl : *(node->cdl)) {
+        cl->accept(*this);
+    }
+}
+
+// 主方法: public int main() { 变量声明列表 语句列表 }
+// MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}';
+void AST_Semant_Visitor::visit(MainMethod* node)
+{
+    // 更新当前类名和方法名
+    current_class_name = "";
+    current_method_name = "main";
+
+    // 调用accept(visit)
+    for (auto vd : *(node->vdl)) {
+        vd->accept(*this);
+    }
+    for (auto s : *(node->sl)) {
+        s->accept(*this);
+    }
+}
+
+// 类声明: 类名 [基类名] { 变量声明列表 方法声明列表 }
+// CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
+//          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
+void AST_Semant_Visitor::visit(ClassDecl* node)
+{
+    // 更新当前类名
+    current_class_name = node->id->id;
+
+    // 调用accept(visit)
+    for (auto vd : *(node->vdl)) {
+        vd->accept(*this);
+    }
+    for (auto md : *(node->mdl)) {
+        md->accept(*this);
+    }
+}
+
+// 类型:  整型 | 整型数组 | 类
+// TYPE: INT | INT '[' ']' | CLASS ID
+void AST_Semant_Visitor::visit(Type* node)
+{
+    // CLASS ID 检查类型是否存在
+    if (node->typeKind == TypeKind::CLASS) {
+        if (!name_maps->is_class(node->cid->id)) {
+            cerr << node->cid->getPos()->print() << endl;
+            cerr << "- 类型不存在: " << node->cid->id << endl;
         }
     }
 }
 
+// 变量声明
+// VARDECL: CLASS ID ID ';'
+//        | INT ID ';'
+//        | INT '[' ']' ID ';'
+//        | INT '[' NUM ']' ID ';'
+//        | INT ID '=' CONST ';'
+//        | INT '[' ']' ID '=' '{' CONSTLIST '}' ';'
+//        | INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'
+void AST_Semant_Visitor::visit(VarDecl* node) { node->type->accept(*this); }
 
-/**
- * MAINMETHOD -> PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}'
- */
-void AST_Semant_Visitor::visit(MainMethod* node) {
-#ifdef DEBUG
-    std::cout << "Visiting MainMethod" << std::endl;
-#endif
+// 方法声明: 返回类型 方法名(形参列表) { 变量声明列表 语句列表 }
+// METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
+void AST_Semant_Visitor::visit(MethodDecl* node)
+{
+    // 更新当前方法名
+    current_method_name = node->id->id;
 
-    if (node == nullptr) return;
-
-    current_class = "";
-    current_method = "main";
-
-    // 局部变量声明
-    if (node->vdl != nullptr) {
-        for (auto vd : *(node->vdl)) {
-            vd->accept(*this);
-        }
+    // 调用accept(visit)
+    node->type->accept(*this);
+    for (auto vd : *(node->vdl)) {
+        vd->accept(*this);
     }
-
-    // 所有 Stm
-    if (node->sl != nullptr) {
-        for (auto s : *(node->sl)) {
-            s->accept(*this);
-        }
-    }
-
-    current_method = "";
-}
-
-
-/**
- *  CLASSDECL -> PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
- *             | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
- */
-void AST_Semant_Visitor::visit(ClassDecl* node) {
-#ifdef DEBUG
-    std::cout << "Visiting ClassDecl" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    current_class = node->id->id;
-
-    // 类内变量声明
-    if (node->vdl != nullptr) {
-        for (auto vd : *(node->vdl)) {
-            vd->accept(*this);
-        }
-    }
-
-    // 类内方法
-    if (node->mdl != nullptr) {
-        for (auto md : *(node->mdl)) {
-            md->accept(*this);
-        }
-    }
-
-    current_class = "";
-}
-
-
-/**
- * TYPE -> CLASS ID | INT | INT '[' ']'
- */
-void AST_Semant_Visitor::visit(Type* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Type" << std::endl;
-#endif
-    // 无需语义信息
-    return;
-}
-
-
-/** 
- * VARDECL -> CLASS ID ID ';'                                                             // id <=> [a-z_A-Z][a-z_A-Z0-9]*
- *          | INT ID ';' | INT ID '=' CONST ';'
- *          | INT '[' ']' ID ';' | INT '[' ']' ID '=' '{' CONSTLIST '}' ';'               // 数组长度只由[]内的数字决定，若为空则是0
- *          | INT '[' NUM ']' ID ';' | INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'       // NUM <=> [1-9][0-9]*|0
- */
-void AST_Semant_Visitor::visit(VarDecl* node) {
-#ifdef DEBUG
-    std::cout << "Visiting VarDecl" << std::endl;
-#endif
-    // 无需语义信息
-    return;
-}
-
-
-/**
- * METHODDECL -> PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
- */
-void AST_Semant_Visitor::visit(MethodDecl* node) {
-#ifdef DEBUG
-    std::cout << "Visiting MethodDecl" << std::endl;
-#endif
-    
-    if (node == nullptr) return;
-
-    current_method = node->id->id;
-
-    // 形参列表
-    if (node->fl != nullptr) {
-        for (auto f : *(node->fl)) {
-            f->accept(*this);
-        }
-    }
-
-    // 局部变量声明
-    if (node->vdl != nullptr) {
-        for (auto vd : *(node->vdl)) {
-            vd->accept(*this);
-        }
-    }
-
-    // 所有 Stm
-    if (node->sl != nullptr) {
-        for (auto s : *(node->sl)) {
-            s->accept(*this);
-        }
-    }
-
-    current_method = "";
-}
-
-
-/**
- * FORMAL -> TYPE ID
- */
-void AST_Semant_Visitor::visit(Formal* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Formal" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // !!!
-}
-
-
-/**
- * NESTED -> '{' STMLIST '}'
- */
-void AST_Semant_Visitor::visit(Nested* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Nested" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 所有 Stm
-    if (node->sl != nullptr) {
-        for (auto s : *(node->sl)) {
-            s->accept(*this);
-        }
+    for (auto s : *(node->sl)) {
+        s->accept(*this);
     }
 }
 
+// 形参: 类型 变量名
+// FORMAL: TYPE ID
+void AST_Semant_Visitor::visit(Formal* node) { node->type->accept(*this); }
 
-/**        
- * STM -> IF '(' EXP ')' STM ELSE STM       // 检查 EXP 为 int
- *      | IF '(' EXP ')' STM
- */
-void AST_Semant_Visitor::visit(If* node) {
-#ifdef DEBUG
-    std::cout << "Visiting If" << std::endl;
-#endif
+// 语句
+// STM: '{' STMLIST '}'
+//      | IF '(' EXP ')' STM ELSE STM
+//      | IF '(' EXP ')' STM
+//      | WHILE '(' EXP ')' STM
+//      | WHILE '(' EXP ')' ';'
+//      | EXP '=' EXP ';'
+//      | EXP '.' ID '(' EXPLIST ')' ';'
+//      | CONTINUE ';'
+//      | BREAK ';'
+//      | RETURN EXP ';'
+//      | PUTINT '(' EXP ')' ';'
+//      | PUTCH '(' EXP ')' ';'
+//      | PUTARRAY '(' EXP ',' EXP ')' ';'
+//      | STARTTIME '(' ')' ';'
+//      | STOPTIME '(' ')' ';'
 
-    if (node == nullptr) return;
-
-    // 条件 EXP
-    if (node->exp != nullptr) {
-        node->exp->accept(*this);
-        
-        // 检查条件是否为整数类型
-        AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-        if (exp_semant == nullptr || exp_semant->get_type() != TypeKind::INT) {
-            cerr << "Error: If condition must be of integer type" << endl;
-        }
-    } else {
-        cerr << "Error: If statement missing condition" << endl;
+// 语句->语句块
+// NESTED: '{' STMLIST '}'
+void AST_Semant_Visitor::visit(Nested* node)
+{
+    for (auto s : *(node->sl)) {
+        s->accept(*this);
     }
+}
 
-    // then 语句
-    if (node->stm1 != nullptr) {
-        node->stm1->accept(*this);
-    }
-
-    // else 语句 (如果存在)
+// 语句->if语句: if (条件表达式) 语句1 [else 语句2]
+// STM: IF '(' EXP ')' STM ELSE STM
+//    | IF '(' EXP ')' STM
+void AST_Semant_Visitor::visit(If* node)
+{
+    node->exp->accept(*this);
+    node->stm1->accept(*this);
     if (node->stm2 != nullptr) {
         node->stm2->accept(*this);
     }
 
+    // 检查Exp为int
+    AST_Semant* exp_semant = semant_map->getSemant(node->exp);
+    if (exp_semant == nullptr || exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::INT) {
+        cerr << node->exp->getPos()->print() << endl;
+        cerr << "- if条件表达式不是int类型" << endl;
+        exit(1);
+    }
 }
 
-
-/**
- * STM -> WHILE '(' EXP ')' STM     // 检查 EXP 为 int
- *      | WHILE '(' EXP ')' ';'
- */
-void AST_Semant_Visitor::visit(While* node) {
-#ifdef DEBUG
-    std::cout << "Visiting While" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 循环条件 EXP
-    if (node->exp != nullptr) {
-        node->exp->accept(*this);
-        
-        // 检查条件是否为整数类型
-        AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-        if (exp_semant == nullptr || exp_semant->get_type() != TypeKind::INT) {
-            cerr << "Error: While condition must be of integer type" << endl;
-        }
-    } else {
-        cerr << "Error: While statement missing condition" << endl;
-    }
-
-    // 访问循环体语句
+// 语句->while语句: while (条件表达式) 语句
+// STM: WHILE '(' EXP ')' STM
+//    | WHILE '(' EXP ')' ';'
+void AST_Semant_Visitor::visit(While* node)
+{
+    node->exp->accept(*this);
     if (node->stm != nullptr) {
         is_in_while = true;
         node->stm->accept(*this);
         is_in_while = false;
     }
-}
 
-
-/**
- * STM -> EXP '=' EXP ';'   // 检查类型是否兼容，允许 upcast，允许 int 和 bool 之间的隐式转换
- */
-void AST_Semant_Visitor::visit(Assign* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Assign" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 左侧 EXP
-    if (node->left != nullptr) {
-        node->left->accept(*this);
-    } else {
-        cerr << "Error: Assignment missing left-hand side" << endl;
-        return;
-    }
-
-    // 右侧 EXP
-    if (node->exp != nullptr) {
-        node->exp->accept(*this);
-    } else {
-        cerr << "Error: Assignment missing right-hand side" << endl;
-        return;
-    }
-
-    // 获取左右表达式的语义信息
-    AST_Semant* lhs_semant = semant_map->getSemant(node->left);
-    AST_Semant* rhs_semant = semant_map->getSemant(node->exp);
-
-    // 检查左侧是否为左值
-    if (lhs_semant == nullptr || !lhs_semant->is_lvalue()) {
-        cerr << "Error: Left side of assignment is not an lvalue" << endl;
-        return;
-    }
-
-    // 如果任一 EXP 语义信息缺失，报错并返回
-    if (lhs_semant == nullptr || rhs_semant == nullptr) {
-        cerr << "Error: Invalid expression in assignment" << endl;
-        return;
-    }
-
-    // 类型兼容性检查
-    TypeKind lhs_type = lhs_semant->get_type();
-    TypeKind rhs_type = rhs_semant->get_type();
-
-    // 类型完全相同
-    if (lhs_type == rhs_type) {
-        // 如果是类类型，检查是否允许向上转型 (upcast)
-        if (lhs_type == TypeKind::CLASS) {
-            string lhs_class = get<string>(lhs_semant->get_type_par());
-            string rhs_class = get<string>(rhs_semant->get_type_par());
-            
-            // 检查类型兼容性
-            if (lhs_class != rhs_class) {
-                // 检查是否为有效向上转型：rhs_class 是否是 lhs_class 的子类
-                set<string> ancestors = name_maps->get_ancestors(rhs_class);
-                if (ancestors.find(lhs_class) == ancestors.end()) {
-                    cerr << "Error: Cannot assign " << rhs_class << " to " << lhs_class << endl;
-                    return;
-                }
-            }
-        }
-
-        // array 和 int 类型无需进一步检查
-        return;
-    } 
-
-    // 其他类型不兼容
-    cerr << "Error: Incompatible types in assignment" << endl;
-}
-
-
-/**
- * STM -> EXP '.' ID '(' EXPLIST ')' ';'    // 检查 EXP 为 class，EXP 有 id 方法，EXPLIST 匹配方法参数
- */
-void AST_Semant_Visitor::visit(CallStm* node) {
-#ifdef DEBUG
-    std::cout << "Visiting CallStm" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 检查 EXP
-    if (node->obj == nullptr) {
-        cerr << "Error: Call statement missing object expression" << endl;
-        return;
-    }
-    
-    // 分析 EXP
-    node->obj->accept(*this);
-    
-    // 获取 EXP 的语义信息
-    AST_Semant* obj_semant = semant_map->getSemant(node->obj);
-    if (obj_semant == nullptr) {
-        cerr << "Error: Invalid object in method call" << endl;
-        return;
-    }
-    
-    // EXP 是否为类类型
-    if (obj_semant->get_type() != TypeKind::CLASS) {
-        cerr << "Error: Method call on non-class type" << endl;
-        return;
-    }
-    
-    // 获取类名
-    string class_name = get<string>(obj_semant->get_type_par());
-    
-    // 方法 ID 是否存在
-    if (node->name == nullptr) {
-        cerr << "Error: Missing method name in call" << endl;
-        return;
-    }
-    
-    string method_name = node->name->id;
-    if (!name_maps->is_method(class_name, method_name)) {
-        cerr << "Error: Method " << method_name << " does not exist in class " << class_name << endl;
-        return;
-    }
-    
-    // 访问实参列表
-    vector<AST_Semant*> arg_types;
-    if (node->par != nullptr) {
-        for (auto arg : *(node->par)) {
-            if (arg != nullptr) {
-                arg->accept(*this);
-                AST_Semant* arg_semant = semant_map->getSemant(arg);
-                if (arg_semant != nullptr) {
-                    arg_types.push_back(arg_semant);
-                } else {
-                    cerr << "Error: Invalid argument in method call" << endl;
-                    return;
-                }
-            }
-        }
-    }
-    
-    // 获取方法形参列表
-    vector<Formal*>* formal_list = name_maps->get_method_formal_list(class_name, method_name);
-    if (formal_list == nullptr) {
-        cerr << "Error: Cannot get formal list for method " << method_name << endl;
-        return;
-    }
-    
-    // 检查参数数量是否匹配
-    if (node->par == nullptr && !formal_list->empty()) {
-        cerr << "Error: Method " << method_name << " expects " << formal_list->size() 
-             << " arguments, but none provided" << endl;
-        return;
-    }
-    
-    if (node->par != nullptr && formal_list->size() != node->par->size()) {
-        cerr << "Error: Method " << method_name << " expects " << formal_list->size() 
-             << " arguments, but " << node->par->size() << " provided" << endl;
-        return;
-    }
-    
-    // 检查参数类型是否匹配
-    for (size_t i = 0; i < arg_types.size(); i++) {
-        Formal* formal = (*formal_list)[i];
-        AST_Semant* arg_semant = arg_types[i];
-        
-        // 类型不匹配
-        if (formal->type->typeKind != arg_semant->get_type()) {
-            cerr << "Error: Type mismatch for argument " << i+1 << " in call to " << method_name << endl;
-            return;
-        }
-        
-        // 如果是类类型，还需检查类的兼容性
-        if (formal->type->typeKind == TypeKind::CLASS) {
-            string formal_class = formal->type->cid->id;
-            string arg_class = get<string>(arg_semant->get_type_par());
-            
-            if (formal_class != arg_class) {
-                // 检查是否可以向上转型
-                set<string> ancestors = name_maps->get_ancestors(arg_class);
-                if (ancestors.find(formal_class) == ancestors.end()) {
-                    cerr << "Error: Cannot convert from " << arg_class << " to " << formal_class 
-                         << " for argument " << i+1 << endl;
-                    return;
-                }
-            }
-        }
-    }
-
-    // 至此，检查完毕，方法调用有效
-}
-
-
-/**
- * STM -> CONTINUE ';'  // 检查是否在循环内
- */
-void AST_Semant_Visitor::visit(Continue* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Continue" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 检查是否在循环内
-    if (!is_in_while) {
-        cerr << "Error: 'continue' statement not within a loop" << endl;
-        return;
-    }
-
-    // 检查完毕，且无需语义信息
-}
-
-
-/**
- * STM -> BREAK ';'     // 检查是否在循环内
- */
-void AST_Semant_Visitor::visit(Break* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Break" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 检查是否在循环内
-    if (!is_in_while) {
-        cerr << "Error: 'break' statement not within a loop" << endl;
-        return;
-    }
-
-    // 检查完毕，且无需语义信息 
-}
-
-
-/**
- * STM -> RETURN EXP ';'    // 检查 EXP 为函数返回值
- */
-void AST_Semant_Visitor::visit(Return* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Return" << std::endl;
-#endif
-    if (node == nullptr) return;
-
-    // RETURN 语句必须在方法内
-    if (current_method == "") {
-        cerr << "Error: Return statement outside of method context" << endl;
-        return;
-    }
-
-    // 必须有返回值
-    if (node->exp == nullptr) {
-        cerr << "Error: Return statement must have an expression to return" << endl;
-        return;
-    }
-
-    // 访问 EXP
-    node->exp->accept(*this);
+    // 检查Exp为int
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
     if (exp_semant == nullptr) {
-        cerr << "Error: Invalid return expression" << endl;
-        return;
+        cerr << node->exp->getPos()->print() << endl;
+        cerr << "- while条件表达式无子语义" << endl;
+        exit(1);
+    }
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::INT) {
+        cerr << node->exp->getPos()->print() << endl;
+        cerr << "- while条件表达式不是int类型" << endl;
+        exit(1);
+    }
+}
+
+// 语句->赋值语句: 左值表达式 = 右值表达式;
+// STM: EXP '=' EXP ';'
+void AST_Semant_Visitor::visit(Assign* node)
+{
+    node->left->accept(*this);
+    node->exp->accept(*this);
+
+    AST_Semant* left_semant = semant_map->getSemant(node->left);
+    AST_Semant* exp_semant = semant_map->getSemant(node->exp);
+    if (!is_assignable(left_semant, exp_semant)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 赋值语句左右值类型不匹配" << endl;
+        exit(1);
+    }
+}
+
+// 语句->类方法调用: 类对象.方法名(形参列表);
+// STM: EXP '.' ID '(' EXPLIST ')' ';'
+void AST_Semant_Visitor::visit(CallStm* node)
+{
+    node->obj->accept(*this);
+
+    // 检查Exp为class
+    AST_Semant* obj_semant = semant_map->getSemant(node->obj);
+    if (!is_class(obj_semant)) {
+        cerr << node->obj->getPos()->print() << endl;
+        cerr << "- 类方法调用对象不是类类型" << endl;
+        exit(1);
     }
 
-    // 获取当前方法的返回类型
-    Type* method_type = name_maps->get_method(current_class, current_method);
-    
-    // 检查返回值类型与方法返回类型是否兼容
-    TypeKind method_typeKind = method_type->typeKind;
-    TypeKind exp_typeKind = exp_semant->get_type();
-    
-    if (method_typeKind != exp_typeKind) {
-        cerr << "Error: Return type mismatch, expected " 
-             << (method_typeKind == TypeKind::INT ? "int" : 
-                (method_typeKind == TypeKind::CLASS ? "class" : "array"))
-             << " but got " 
-             << (exp_typeKind == TypeKind::INT ? "int" : 
-                (exp_typeKind == TypeKind::CLASS ? "class" : "array"))
-             << endl;
-        return;
+    // 处理类方法ID
+    is_fetch_class_method = true;
+    fetch_class_name = get<string>(obj_semant->get_type_par());
+    node->name->accept(*this);
+    is_fetch_class_method = false;
+
+    for (auto e : *(node->par)) {
+        e->accept(*this);
     }
-    
-    // 如果是类类型，还需检查类的兼容性
-    if (method_typeKind == TypeKind::CLASS) {
-        string method_class = method_type->cid->id;
-        string exp_class = get<string>(exp_semant->get_type_par());
-        
-        if (method_class != exp_class) {
-            // 检查是否可以向上转型（子类->父类）
-            set<string> ancestors = name_maps->get_ancestors(exp_class);
-            if (ancestors.find(method_class) == ancestors.end()) {
-                cerr << "Error: Cannot convert from " << exp_class << " to " << method_class 
-                     << " in return statement" << endl;
-                return;
-            }
+
+    // 检查Exp有id方法
+    string method_name = node->name->id;
+    string class_name = get<string>(obj_semant->get_type_par());
+    if (!name_maps->is_method(class_name, method_name)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类方法调用方法不存在" << endl;
+        exit(1);
+    }
+
+    // 检查ExpList匹配方法参数
+    vector<Formal*>* formal_list = name_maps->get_method_formal_list(class_name, method_name);
+    vector<Exp*>* par_list = node->par;
+    if (formal_list->size() != par_list->size()) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类方法调用参数数量不匹配" << endl;
+        exit(1);
+    }
+
+    for (int i = 0; i < formal_list->size(); i++) {
+        Formal* f = (*formal_list)[i];
+        Exp* e = (*par_list)[i];
+
+        Type* formal_type = f->type;
+        AST_Semant* exp_semant = semant_map->getSemant(e);
+        if (!is_assignable(formal_type, exp_semant)) {
+            cerr << node->getPos()->print() << endl;
+            cerr << "- 类方法调用参数类型不匹配" << endl;
+            exit(1);
         }
     }
-    
-    // 返回语句类型检查通过
 }
 
-
-/**
- * STM -> PUTINT '(' EXP ')' ';'    // 检查 EXP 为 int
- */
-void AST_Semant_Visitor::visit(PutInt* node) {
-#ifdef DEBUG
-    std::cout << "Visiting PutInt" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // EXP 不能为空
-    if (node->exp == nullptr) {
-        cerr << "Error: putint requires an expression to print" << endl;
-        return;
+// 语句->continue语句: continue;
+// STM: CONTINUE ';'
+void AST_Semant_Visitor::visit(Continue* node)
+{
+    // 检查在while里
+    if (!is_in_while) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- continue语句不在while循环中" << endl;
+        exit(1);
     }
-    
-    // 访问 EXP
+}
+
+// 语句->break语句: break;
+// STM: BREAK ';'
+void AST_Semant_Visitor::visit(Break* node)
+{
+    // 检查在while里
+    if (!is_in_while) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- break语句不在while循环中" << endl;
+        exit(1);
+    }
+}
+
+// 语句->return语句: return 表达式;
+// STM: RETURN EXP ';'
+void AST_Semant_Visitor::visit(Return* node)
+{
     node->exp->accept(*this);
-    
-    // 检查 EXP 类型是否为 int
+
+    // 检查Exp为函数返回值类型
+    Type* method_return_type = name_maps->get_method_type(current_class_name, current_method_name);
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-    if (exp_semant == nullptr || exp_semant->get_type() != TypeKind::INT) {
-        cerr << "Error: putint requires an integer expression" << endl;
-        return;
+    if (!is_assignable(method_return_type, exp_semant)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- return语句返回值类型不匹配" << endl;
+        exit(1);
     }
-    
-    // 检查完毕，无需语义信息
+
+    // 返回对应的返回值类型
+    semant_map->setSemant(node, build_semant(method_return_type, false));
 }
 
-
-/**
- * STM -> PUTCH '(' EXP ')' ';'    // 检查 EXP 为 int (ASCII)
- */
-void AST_Semant_Visitor::visit(PutCh* node) {
-#ifdef DEBUG
-    std::cout << "Visiting PutCh" << std::endl;
-#endif
-    
-    if (node == nullptr) return;
-    
-    // EXP 不能为空
-    if (node->exp == nullptr) {
-        cerr << "Error: putch requires an expression to print" << endl;
-        return;
-    }
-    
-    // 访问 EXP
+// 语句->打印整数语句: putint(表达式);
+// STM: PUTINT '(' EXP ')' ';'
+void AST_Semant_Visitor::visit(PutInt* node)
+{
     node->exp->accept(*this);
-    
-    // 检查 EXP 类型是否为 int
+
+    // 检查Exp为int
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-    if (exp_semant == nullptr || exp_semant->get_type() != TypeKind::INT) {
-        cerr << "Error: putch requires an integer expression" << endl;
-        return;
+    if (exp_semant == nullptr) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putint语句无子语义" << endl;
+        exit(1);
     }
-    
-    // 检查完毕，无需语义信息
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::INT) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putint语句表达式不是int类型" << endl;
+        exit(1);
+    }
 }
 
+// 语句->打印字符语句: putch(表达式);
+// STM: PUTCH '(' EXP ')' ';'
+void AST_Semant_Visitor::visit(PutCh* node)
+{
+    node->exp->accept(*this);
 
-/**
- * STM -> PUTARRAY '(' EXP ',' EXP ')' ';'    // 检查第一个 EXP 为 int，第二个 EXP 为 array
- */
-void AST_Semant_Visitor::visit(PutArray* node) {
-#ifdef DEBUG
-    std::cout << "Visiting PutArray" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // 检查第一个参数 (n)
-    if (node->n == nullptr) {
-        cerr << "Error: putarray requires a size expression as first argument" << endl;
-        return;
+    // 检查Exp为int
+    AST_Semant* exp_semant = semant_map->getSemant(node->exp);
+    if (exp_semant == nullptr) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putch语句无子语义" << endl;
+        exit(1);
     }
-    
-    // 访问并检查第一个 EXP (n)
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::INT) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putch语句表达式不是int类型" << endl;
+        exit(1);
+    }
+}
+
+// 语句->打印数组语句: putarray(长度表达式, 数组表达式);
+// STM: PUTARRAY '(' EXP ',' EXP ')' ';'
+void AST_Semant_Visitor::visit(PutArray* node)
+{
     node->n->accept(*this);
-    AST_Semant* n_semant = semant_map->getSemant(node->n);
-    if (n_semant == nullptr || n_semant->get_type() != TypeKind::INT) {
-        cerr << "Error: putarray requires an integer as first argument (size)" << endl;
-        return;
-    }
-    
-    // 检查第二个参数 (arr)
-    if (node->arr == nullptr) {
-        cerr << "Error: putarray requires an array expression as second argument" << endl;
-        return;
-    }
-    
-    // 访问并检查第二个 EXP (arr)
     node->arr->accept(*this);
+
+    // 检查第一个Exp为int，第二个Exp为array
+    AST_Semant* n_semant = semant_map->getSemant(node->n);
     AST_Semant* arr_semant = semant_map->getSemant(node->arr);
-    if (arr_semant == nullptr || arr_semant->get_type() != TypeKind::ARRAY) {
-        cerr << "Error: putarray requires an array as second argument" << endl;
-        return;
+    if (n_semant == nullptr || arr_semant == nullptr) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putarray语句无子语义" << endl;
+        exit(1);
     }
-    
-    // 检查完毕，无需语义信息
+    if (n_semant->get_kind() != AST_Semant::Kind::Value || n_semant->get_type() != TypeKind::INT) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putarray语句长度表达式不是int类型" << endl;
+        exit(1);
+    }
+    if (arr_semant->get_kind() != AST_Semant::Kind::Value || arr_semant->get_type() != TypeKind::ARRAY) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- putarray语句数组表达式不是数组类型" << endl;
+        exit(1);
+    }
 }
 
+// 语句->开始计时语句: starttime();
+// STM: STARTTIME '(' ')' ';'
+void AST_Semant_Visitor::visit(Starttime* node) { }
 
-/**
- * STM -> STARTTIME '(' ')' ';'
- */
-void AST_Semant_Visitor::visit(Starttime* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Starttime" << std::endl;
-#endif
-    
-    // 无需语义信息
-    return;
+// 语句->停止计时语句: stoptime();
+// STM: STOPTIME '(' ')' ';'
+void AST_Semant_Visitor::visit(Stoptime* node) { }
+
+// 表达式
+// EXP -> '(' EXP ')'
+//      | '(' '{' STMLIST '}' EXP ')'
+//      | ID
+//      | NUM
+//      | TRUE | FALSE
+//      | EXP '[' EXP ']'
+//      | OP
+//      | EXP [+-*/ COMP && ||] EXP
+//      | [-!] EXP
+//      | THIS
+//      | EXP '.' ID '(' EXPLIST ')'
+//      | EXP '.' ID
+//      | GETINT '(' ')'
+//      | GETCH '(' ')'
+//      | GETARRAY '(' EXP ')'
+//      | LENGTH '(' EXP ')'
+
+// 表达式->逃逸表达式: ({ 语句列表 } 表达式)
+// EXP: '(' '{' STMLIST '}' EXP ')'
+void AST_Semant_Visitor::visit(Esc* node)
+{
+    for (auto s : *(node->sl)) {
+        s->accept(*this);
+    }
+    node->exp->accept(*this);
+
+    // 返回Exp类型
+    AST_Semant* exp_semant = semant_map->getSemant(node->exp);
+    if (exp_semant == nullptr) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 逃逸表达式无子语义" << endl;
+        exit(1);
+    }
+    semant_map->setSemant(node, exp_semant);
 }
 
+// 表达式->标识符: id
+// EXP: ID
+void AST_Semant_Visitor::visit(IdExp* node)
+{
+    // 返回变量类型
+    string id = node->id;
 
-/**
- * STM -> STOPTIME '(' ')' ';'
- */
-void AST_Semant_Visitor::visit(Stoptime* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Stoptime" << std::endl;
-#endif
-    // 无需语义信息
-    return;
+    // 获取类成员变量
+    if (is_fetch_class_var)
+        if (name_maps->is_class_var(fetch_class_name, id)) {
+            VarDecl* vd = name_maps->get_class_var(fetch_class_name, id);
+            semant_map->setSemant(node, build_semant(vd->type));
+            return;
+        } else {
+            cerr << node->getPos()->print() << endl;
+            cerr << "- 类成员变量不存在: " << fetch_class_name << "->" << id << endl;
+            exit(1);
+        }
+
+    // 获取类方法
+    if (is_fetch_class_method)
+        if (name_maps->is_method(fetch_class_name, id)) {
+            Type* t = name_maps->get_method_type(fetch_class_name, id);
+            auto semant = new AST_Semant(AST_Semant::Kind::MethodName, t->typeKind, monostate(), false);
+            semant_map->setSemant(node, semant);
+            return;
+        } else {
+            cerr << node->getPos()->print() << endl;
+            cerr << "- 类方法不存在: " << fetch_class_name << "->" << id << endl;
+            exit(1);
+        }
+
+    // 首先判断是否为类方法局部变量
+    if (name_maps->is_method_var(current_class_name, current_method_name, id)) {
+        VarDecl* vd = name_maps->get_method_var(current_class_name, current_method_name, id);
+        semant_map->setSemant(node, build_semant(vd->type));
+        return;
+    }
+
+    // 然后判断是否为方法参数
+    if (name_maps->is_method_formal(current_class_name, current_method_name, id)) {
+        Formal* f = name_maps->get_method_formal(current_class_name, current_method_name, id);
+        semant_map->setSemant(node, build_semant(f->type));
+        return;
+    }
+
+    // 然后判断是否为类成员变量
+    if (name_maps->is_class_var(current_class_name, id)) {
+        VarDecl* vd = name_maps->get_class_var(current_class_name, id);
+        semant_map->setSemant(node, build_semant(vd->type));
+        return;
+    }
+
+    // 最后判断是否为类方法
+    if (name_maps->is_method(current_class_name, id)) {
+        Type* t = name_maps->get_method_type(current_class_name, id);
+        auto semant = new AST_Semant(AST_Semant::Kind::MethodName, t->typeKind, monostate(), false);
+        semant_map->setSemant(node, semant);
+        return;
+    }
+
+    // 最终判断是否为类
+    if (name_maps->is_class(id)) {
+        auto semant = new AST_Semant(AST_Semant::Kind::Value, TypeKind::CLASS, id, false);
+        semant_map->setSemant(node, semant);
+        return;
+    }
 }
 
+// 表达式->整数: num
+// EXP: NUM
+void AST_Semant_Visitor::visit(IntExp* node)
+{
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
+}
 
-/**
- * EXP -> EXP OP EXP    // 检查 EXP 是 int 或 array ，返回 EXP 类型。不用检查两个数组的长度是否相同，因为有些数组长度是runtime才能确定的（比如getarray()）
- */
-void AST_Semant_Visitor::visit(BinaryOp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting BinaryOp" << std::endl;
-#endif
+// 表达式->布尔常量: true | false
+// EXP: TRUE | FALSE
+void AST_Semant_Visitor::visit(BoolExp* node)
+{
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
+}
 
-    if (node == nullptr) return;
-    
-    // 访问左右两个 EXP
-    if (node->left != nullptr) {
-        node->left->accept(*this);
-    } else {
-        cerr << "Error: Binary operation missing left operand" << endl;
-        return;
+// 表达式->数组访问: 数组表达式[下标表达式]
+// EXP: EXP '[' EXP ']'
+void AST_Semant_Visitor::visit(ArrayExp* node)
+{
+    node->arr->accept(*this);
+    node->index->accept(*this);
+
+    // 检查第一个Exp为array，第二个Exp为int
+    AST_Semant* arr_semant = semant_map->getSemant(node->arr);
+    AST_Semant* index_semant = semant_map->getSemant(node->index);
+    if (arr_semant == nullptr || index_semant == nullptr) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 数组访问无子语义" << endl;
+        exit(1);
     }
-    
-    if (node->right != nullptr) {
-        node->right->accept(*this);
-    } else {
-        cerr << "Error: Binary operation missing right operand" << endl;
-        return;
+    if (arr_semant->get_kind() != AST_Semant::Kind::Value || arr_semant->get_type() != TypeKind::ARRAY) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 数组访问数组表达式不是数组类型" << endl;
+        exit(1);
     }
-    
-    // 获取左右 EXP 的语义信息
+    if (index_semant->get_kind() != AST_Semant::Kind::Value || index_semant->get_type() != TypeKind::INT) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 数组访问下标表达式不是int类型" << endl;
+        exit(1);
+    }
+
+    // 返回int类型
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), true));
+}
+
+// 表达式->操作符: op
+// EXP: [+-*/ COMP && ||] [-!]
+void AST_Semant_Visitor::visit(OpExp* node) { }
+
+// 表达式->二元操作: 左表达式 OP 右表达式
+// EXP: EXP OP EXP
+void AST_Semant_Visitor::visit(BinaryOp* node)
+{
+    node->left->accept(*this);
+    node->right->accept(*this);
+
+    // 检查Exp都是int或array
     AST_Semant* left_semant = semant_map->getSemant(node->left);
     AST_Semant* right_semant = semant_map->getSemant(node->right);
-    
     if (left_semant == nullptr || right_semant == nullptr) {
-        cerr << "Error: Invalid operands in binary operation" << endl;
-        return;
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 二元操作无子语义" << endl;
+        exit(1);
     }
-    
-    // 获取运算符
-    string op = "";
-    if (node->op != nullptr) {
-        op = node->op->op;
-    } else {
-        cerr << "Error: Binary operation missing operator" << endl;
-        return;
+    if (left_semant->get_kind() != AST_Semant::Kind::Value || right_semant->get_kind() != AST_Semant::Kind::Value) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 二元操作左值或右值不是Value类型" << endl;
+        exit(1);
     }
-    
-    // 检查左右 EXP 类型是否相同
-    TypeKind left_type = left_semant->get_type();
-    TypeKind right_type = right_semant->get_type();
-    
-    // 两边必须是相同类型
-    if (left_type != right_type) {
-        cerr << "Error: Incompatible types in binary operation: " << op << endl;
-        return;
+    if (left_semant->get_type() == TypeKind::CLASS || right_semant->get_type() == TypeKind::CLASS) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 二元操作不支持类" << endl;
+        exit(1);
+    }
+    if (left_semant->get_type() != right_semant->get_type()) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 二元操作左值和右值类型不匹配" << endl;
+        exit(1);
     }
 
-    // 判断结果类型
-    TypeKind result_type;
-    
-    if (left_type == TypeKind::INT) {
-        // 对于整数，允许所有算术和比较操作
-        result_type = TypeKind::INT; // 所有整数操作都返回整数
-    } 
-    else if (left_type == TypeKind::ARRAY) {
-        // 对于数组，只允许 + - * / == !=
-        if (op == "+" || op == "-" || op == "*" || op == "/") {
-            result_type = TypeKind::ARRAY;
-        }
-        else if (op == "==" && op == "!=") {
-            result_type = TypeKind::INT;
-        }
-        else {
-            cerr << "Error: Operator " << op << " not supported for array types" << endl;
-            return;
-        }
-    }
-    
-    // 创建并保存语义信息
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        result_type,
-        monostate(),  // 无需额外类型信息
-        false         // 二元操作结果不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
+    // 返回Exp类型
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, left_semant->get_type(), left_semant->get_type_par(), false));
 }
 
-
-/**
- * EXP -> '!' EXP   // 检查 EXP 是 int 或 array ，返回 EXP 类型。
- *      | '-' EXP
- */
-void AST_Semant_Visitor::visit(UnaryOp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting UnaryOp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // EXP 不能为空
-    if (node->exp == nullptr) {
-        cerr << "Error: Unary operation missing operand" << endl;
-        return;
-    }
-    
-    // 访问 EXP
+// 表达式->一元操作: OP 表达式
+// EXP: '!' EXP | '-' EXP
+void AST_Semant_Visitor::visit(UnaryOp* node)
+{
     node->exp->accept(*this);
+
+    // 检查Exp是int或array
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
     if (exp_semant == nullptr) {
-        cerr << "Error: Invalid operand in unary operation" << endl;
-        return;
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 一元操作无子语义" << endl;
+        exit(1);
     }
-    
-    // 检查 EXP 类型
-    TypeKind exp_type = exp_semant->get_type();
-    if (exp_type != TypeKind::INT && exp_type != TypeKind::ARRAY) {
-        cerr << "Error: Unary operation requires int or array type" << endl;
-        return;
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 一元操作不是Value类型" << endl;
+        exit(1);
     }
-    
-    // 创建并保存语义信息 - 保持操作数的类型
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        exp_type,
-        exp_semant->get_type_par(),  // 保持原类型的参数
-        false                        // 一元操作结果不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
+    if (exp_semant->get_type() == TypeKind::CLASS) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 一元操作不支持类" << endl;
+        exit(1);
+    }
+
+    // 返回Exp类型
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, exp_semant->get_type(), exp_semant->get_type_par(), false));
 }
 
-
-/**
- * EXP -> EXP '[' EXP ']'    // 检查第一个 EXP 是 array，第二个 EXP 为 int 
- */
-void AST_Semant_Visitor::visit(ArrayExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting ArrayExp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // 检查数组表达式
-    if (node->arr == nullptr) {
-        cerr << "Error: Array access missing array expression" << endl;
-        return;
-    }
-    
-    // 分析数组表达式
-    node->arr->accept(*this);
-    AST_Semant* arr_semant = semant_map->getSemant(node->arr);
-    if (arr_semant == nullptr) {
-        cerr << "Error: Invalid array expression" << endl;
-        return;
-    }
-    
-    // 验证第一个 EXP 是数组类型
-    if (arr_semant->get_type() != TypeKind::ARRAY) {
-        cerr << "Error: Array access requires an array type" << endl;
-        return;
-    }
-    
-    // 检查索引表达式
-    if (node->index == nullptr) {
-        cerr << "Error: Array access missing index expression" << endl;
-        return;
-    }
-    
-    // 分析索引表达式
-    node->index->accept(*this);
-    AST_Semant* index_semant = semant_map->getSemant(node->index);
-    if (index_semant == nullptr) {
-        cerr << "Error: Invalid index expression" << endl;
-        return;
-    }
-    
-    // 验证索引表达式是整数类型
-    if (index_semant->get_type() != TypeKind::INT) {
-        cerr << "Error: Array index must be of integer type" << endl;
-        return;
-    }
-    
-    // 数组访问表达式返回整数类型
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(),  // 无需额外类型信息
-        true          // 数组元素是左值
-    );
-    
-    // 保存语义信息
-    semant_map->setSemant(node, semant);
+// 表达式->this指针: this
+// EXP: THIS
+void AST_Semant_Visitor::visit(This* node)
+{
+    // 返回class
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::CLASS, current_class_name, false));
 }
 
-
-/**
- * EXP -> EXP '.' ID '(' EXPLIST ')'    // 检查 EXP 为 class，EXP 有 id 方法，EXPLIST 匹配方法参数，返回方法类型
- */
-void AST_Semant_Visitor::visit(CallExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting CallExp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 检查 EXP
-    if (node->obj == nullptr) {
-        cerr << "Error: Call expression missing object expression" << endl;
-        return;
-    }
-
-    // 分析 EXP
+// 表达式->类变量访问: 类对象.变量名
+// EXP: EXP '.' ID
+void AST_Semant_Visitor::visit(ClassVar* node)
+{
     node->obj->accept(*this);
 
-    // 获取 EXP 的语义信息
+    // 检查Exp为class
     AST_Semant* obj_semant = semant_map->getSemant(node->obj);
-    if (obj_semant == nullptr) {
-        cerr << "Error: Invalid object in method call expression" << endl;
-        return;
+    if (!is_class(obj_semant)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类变量访问obj不是类" << endl;
+        exit(1);
     }
 
-    // EXP 是否为类类型
-    if (obj_semant->get_type() != TypeKind::CLASS) {
-        cerr << "Error: Method call on non-class type in expression" << endl;
-        return;
-    }
+    // 处理类变量ID
+    is_fetch_class_var = true;
+    fetch_class_name = get<string>(obj_semant->get_type_par());
+    node->id->accept(*this);
+    is_fetch_class_var = false;
 
-    // 获取类名
-    string class_name = get<string>(obj_semant->get_type_par());
-
-    // 方法 ID 是否存在
-    if (node->name == nullptr) {
-        cerr << "Error: Missing method name in call expression" << endl;
-        return;
-    }
-
-    string method_name = node->name->id;
-    if (!name_maps->is_method(class_name, method_name)) {
-        cerr << "Error: Method " << method_name << " does not exist in class " << class_name << endl;
-        return;
-    }
-
-    // 访问实参列表
-    vector<AST_Semant*> arg_types;
-    if (node->par != nullptr) {
-        for (auto arg : *(node->par)) {
-            if (arg != nullptr) {
-                arg->accept(*this);
-                AST_Semant* arg_semant = semant_map->getSemant(arg);
-                if (arg_semant != nullptr) {
-                    arg_types.push_back(arg_semant);
-                } else {
-                    cerr << "Error: Invalid argument in method call expression" << endl;
-                    return;
-                }
-            }
-        }
-    }
-
-    // 获取方法形参列表
-    vector<Formal*>* formal_list = name_maps->get_method_formal_list(class_name, method_name);
-    if (formal_list == nullptr) {
-        cerr << "Error: Cannot get formal list for method " << method_name << endl;
-        return;
-    }
-
-    // 检查参数数量是否匹配
-    if (node->par == nullptr && !formal_list->empty()) {
-        cerr << "Error: Method " << method_name << " expects " << formal_list->size() 
-             << " arguments, but none provided" << endl;
-        return;
-    }
-
-    if (node->par != nullptr && formal_list->size() != node->par->size()) {
-        cerr << "Error: Method " << method_name << " expects " << formal_list->size() 
-             << " arguments, but " << node->par->size() << " provided" << endl;
-        return;
-    }
-
-    // 检查参数类型是否匹配
-    for (size_t i = 0; i < arg_types.size(); i++) {
-        Formal* formal = (*formal_list)[i];
-        AST_Semant* arg_semant = arg_types[i];
-        
-        // 类型不匹配
-        if (formal->type->typeKind != arg_semant->get_type()) {
-            cerr << "Error: Type mismatch for argument " << i+1 << " in call to " << method_name << endl;
-            return;
-        }
-        
-        // 如果是类类型，还需检查类的兼容性
-        if (formal->type->typeKind == TypeKind::CLASS) {
-            string formal_class = formal->type->cid->id;
-            string arg_class = get<string>(arg_semant->get_type_par());
-            
-            if (formal_class != arg_class) {
-                // 检查是否可以向上转型
-                set<string> ancestors = name_maps->get_ancestors(arg_class);
-                if (ancestors.find(formal_class) == ancestors.end()) {
-                    cerr << "Error: Cannot convert from " << arg_class << " to " << formal_class 
-                         << " for argument " << i+1 << endl;
-                    return;
-                }
-            }
-        }
-    }
-
-    // 获取方法返回类型并设置语义信息
-    Type* method_type = name_maps->get_method(class_name, method_name);
-    if (method_type == nullptr) {
-        cerr << "Error: Cannot get return type for method " << method_name << endl;
-        return;
-    }
-
-    // 创建表达式的语义信息，基于方法的返回类型
-    variant<monostate, string, int> type_par;
-    if (method_type->typeKind == TypeKind::CLASS) {
-        type_par = method_type->cid->id;
-    } else if (method_type->typeKind == TypeKind::ARRAY) {
-        if (method_type->arity != nullptr) {
-            type_par = method_type->arity->val;
-        } else {
-            type_par = 0; // 默认数组大小为0
-        }
-    } else {
-        type_par = monostate{}; // INT类型无需额外信息
-    }
-
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        method_type->typeKind,
-        type_par,
-        false // 方法调用结果不是左值
-    );
-
-    semant_map->setSemant(node, semant);
-
-}
-
-
-/**
- * EXP -> EXP '.' ID    // 检查 EXP 为 class，EXP 有 id 变量，返回变量类型
- */
-void AST_Semant_Visitor::visit(ClassVar* node) {
-#ifdef DEBUG
-    std::cout << "Visiting ClassVar" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-
-    // 检查对象表达式
-    if (node->obj == nullptr) {
-        cerr << "Error: Missing object in class variable access" << endl;
-        return;
-    }
-
-    // 分析对象表达式
-    node->obj->accept(*this);
-    AST_Semant* obj_semant = semant_map->getSemant(node->obj);
-    if (obj_semant == nullptr) {
-        cerr << "Error: Invalid object in class variable access" << endl;
-        return;
-    }
-
-    // 验证对象是类类型
-    if (obj_semant->get_type() != TypeKind::CLASS) {
-        cerr << "Error: Cannot access member of non-class type" << endl;
-        return;
-    }
-
-    // 获取类名
-    string class_name = get<string>(obj_semant->get_type_par());
-
-    // 检查变量名
-    if (node->id == nullptr) {
-        cerr << "Error: Missing identifier in class variable access" << endl;
-        return;
-    }
-    
+    // 检查Exp是否有id成员变量
     string var_name = node->id->id;
-    
-    // 检查该类是否有此变量
+    string class_name = get<string>(obj_semant->get_type_par());
     if (!name_maps->is_class_var(class_name, var_name)) {
-        cerr << "Error: Class " << class_name << " has no variable named " << var_name << endl;
-        return;
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类变量访问成员变量不存在" << endl;
+        exit(1);
     }
-    
-    // 获取变量声明
-    VarDecl* var_decl = name_maps->get_class_var(class_name, var_name);
-    if (var_decl == nullptr) {
-        cerr << "Error: Failed to retrieve declaration for " << var_name << endl;
-        return;
+
+    // 返回id成员变量类型
+    VarDecl* vd = name_maps->get_class_var(class_name, var_name);
+    semant_map->setSemant(node, build_semant(vd->type));
+}
+
+// 表达式->类方法调用: 类对象.方法名(形参列表)
+// EXP: EXP '.' ID '(' EXPLIST ')'
+void AST_Semant_Visitor::visit(CallExp* node)
+{
+    node->obj->accept(*this);
+
+    // 检查Exp为class
+    AST_Semant* obj_semant = semant_map->getSemant(node->obj);
+    if (!is_class(obj_semant)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类方法调用obj不是类" << endl;
+        exit(1);
     }
-    
-    // 根据变量类型创建语义信息
-    Type* type = var_decl->type;
-    
-    if (type->typeKind == TypeKind::CLASS) {
-        // 类变量
-        AST_Semant* semant = new AST_Semant(
-            AST_Semant::Kind::Value,
-            TypeKind::CLASS,
-            type->cid->id,  // 类名作为类型信息
-            true            // 变量是左值
-        );
-        semant_map->setSemant(node, semant);
-    } else if (type->typeKind == TypeKind::INT) {
-        // 整型变量
-        AST_Semant* semant = new AST_Semant(
-            AST_Semant::Kind::Value,
-            TypeKind::INT,
-            monostate(),    // 整型无需额外类型信息
-            true            // 变量是左值
-        );
-        semant_map->setSemant(node, semant);
-    } else if (type->typeKind == TypeKind::ARRAY) {
-        // 数组变量
-        int array_size = 0;
-        if (type->arity != nullptr) {
-            array_size = type->arity->val;
+
+    is_fetch_class_method = true;
+    fetch_class_name = get<string>(obj_semant->get_type_par());
+    node->name->accept(*this);
+    is_fetch_class_method = false;
+
+    for (auto e : *(node->par)) {
+        e->accept(*this);
+    }
+
+    // 检查Exp是否有id方法
+    string method_name = node->name->id;
+    string class_name = get<string>(obj_semant->get_type_par());
+    if (!name_maps->is_method(class_name, method_name)) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类方法调用方法不存在" << endl;
+        exit(1);
+    }
+
+    // 检查ExpList是否匹配参数列表
+    vector<Formal*>* formal_list = name_maps->get_method_formal_list(class_name, method_name);
+    vector<Exp*>* par_list = node->par;
+    if (formal_list->size() != par_list->size()) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- 类方法调用参数数量不匹配" << endl;
+        exit(1);
+    }
+
+    for (int i = 0; i < formal_list->size(); i++) {
+        Formal* f = (*formal_list)[i];
+        Exp* e = (*par_list)[i];
+
+        Type* formal_type = f->type;
+        AST_Semant* exp_semant = semant_map->getSemant(e);
+        if (!is_assignable(formal_type, exp_semant)) {
+            cerr << node->getPos()->print() << endl;
+            cerr << "- 类方法调用参数类型不匹配" << endl;
+            exit(1);
         }
-        
-        AST_Semant* semant = new AST_Semant(
-            AST_Semant::Kind::Value,
-            TypeKind::ARRAY,
-            array_size,     // 数组尺寸作为类型信息
-            true            // 变量是左值
-        );
-        semant_map->setSemant(node, semant);
     }
 
+    // 返回方法类型
+    Type* t = name_maps->get_method_type(class_name, method_name);
+    semant_map->setSemant(node, build_semant(t, false));
 }
 
-
-/**
- * EXP -> TRUE | FALSE      // 返回 int
- */
-void AST_Semant_Visitor::visit(BoolExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting BoolExp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // 创建布尔值的语义信息
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,     // 布尔值实际上是整数
-        monostate(),       // 无需额外类型信息
-        false              // 布尔值不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
+// 表达式->读取整数: getint()
+// EXP: GETINT '(' ')'
+void AST_Semant_Visitor::visit(GetInt* node)
+{
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
 }
 
-
-/**
- * EXP -> THIS      // 返回 class
- */
-void AST_Semant_Visitor::visit(This* node) {
-#ifdef DEBUG
-    std::cout << "Visiting This" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // THIS 必须在类方法中使用
-    if (current_class.empty()) {
-        cerr << "Error: 'this' cannot be used outside of a class method" << endl;
-        return;
-    }
-    
-    // 创建 THIS 的语义信息
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::CLASS,
-        current_class,     // 当前类名作为额外类型信息
-        false              // THIS 不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
+// 表达式->读取字符: getch()
+// EXP: GETCH '(' ')'
+void AST_Semant_Visitor::visit(GetCh* node)
+{
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
 }
 
-
-/**
- * EXP -> LENGTH '(' EXP ')'    // 检查 EXP 为 array，返回 int
- */
-void AST_Semant_Visitor::visit(Length* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Length" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // 检查传入的数组表达式
-    if (node->exp == nullptr) {
-        cerr << "Error: length() requires an array expression" << endl;
-        return;
-    }
-    
-    // 分析数组表达式
+// 表达式->读取数组: getarray(数组变量)
+// EXP: GETARRAY '(' EXP ')'
+void AST_Semant_Visitor::visit(GetArray* node)
+{
     node->exp->accept(*this);
-    
-    // 获取表达式的语义信息
+
+    // 检查Exp是array
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
     if (exp_semant == nullptr) {
-        cerr << "Error: Invalid expression in length()" << endl;
-        return;
+        cerr << node->getPos()->print() << endl;
+        cerr << "- getarray语句无子语义" << endl;
+        exit(1);
     }
-    
-    // 验证表达式是数组类型
-    if (exp_semant->get_type() != TypeKind::ARRAY) {
-        cerr << "Error: length() requires an array argument" << endl;
-        return;
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::ARRAY) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- getarray语句表达式不是数组类型" << endl;
+        exit(1);
     }
-    
-    // length() 返回整数值，表示数组长度
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(),  // 无需额外类型信息
-        false         // length() 结果不是左值
-    );
-    
-    // 保存语义信息
-    semant_map->setSemant(node, semant);
 
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
 }
 
-
-/**
- * EXP -> '(' '{' STMLIST '}' EXP ')'   // 返回 EXP 类型
- */
-void AST_Semant_Visitor::visit(Esc* node) {
-#ifdef DEBUG
-    std::cout << "Visiting Esc" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // 检查 Stm 列表
-    if (node->sl != nullptr) {
-        for (auto s : *(node->sl)) {
-            if (s != nullptr) {
-                s->accept(*this);
-            }
-        }
-    }
-    
-    // 检查 EXP
-    if (node->exp == nullptr) {
-        cerr << "Error: Esc expression missing final expression" << endl;
-        return;
-    }
-    
-    // 访问 EXP
+// 表达式->获取数组长度: length(数组表达式)
+// EXP: LENGTH '(' EXP ')'
+void AST_Semant_Visitor::visit(Length* node)
+{
     node->exp->accept(*this);
-    
-    // 获取 EXP 的语义信息
+
+    // 检查Exp是array
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
     if (exp_semant == nullptr) {
-        cerr << "Error: Invalid final expression in Esc" << endl;
-        return;
+        cerr << node->getPos()->print() << endl;
+        cerr << "- length语句无子语义" << endl;
+        exit(1);
     }
-    
-    // Esc 返回 EXP 的类型
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        exp_semant->get_type(),
-        exp_semant->get_type_par(), // 保持原类型的参数
-        false                       // Esc 结果不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
-}
-
-
-/**
- * EXP -> GETINT '(' ')'    // 返回 int
- */
-void AST_Semant_Visitor::visit(GetInt* node) {
-#ifdef DEBUG
-    std::cout << "Visiting GetInt" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    // getint() 返回整数值
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(),
-        false         // getint() 结果不是左值
-    );
-    
-    semant_map->setSemant(node, semant);
-}
-
-
-/**
- * EXP -> GETCH '(' ')'    // 返回 int
- */
-void AST_Semant_Visitor::visit(GetCh* node) {
-#ifdef DEBUG
-    std::cout << "Visiting GetCh" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-        
-    // getch() 返回整数值 (ASCII)
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(), 
-        false         // getch() 结果不是左值
-    );
-
-    semant_map->setSemant(node, semant);
-}
-
-
-/**
- * EXP -> GETARRAY '(' EXP ')'    // 检查 EXP 为 array，返回 int
- */
-void AST_Semant_Visitor::visit(GetArray* node) {
-#ifdef DEBUG
-    std::cout << "Visiting GetArray" << std::endl;
-#endif
-    if (node == nullptr) return;
-    
-    // 首先分析传递给 getarray 的 EXP
-    if (node->exp != nullptr) {
-        node->exp->accept(*this);
-    } 
-    else {
-        cerr << "Error: getarray expects an array argument" << endl;
-        return;
+    if (exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::ARRAY) {
+        cerr << node->getPos()->print() << endl;
+        cerr << "- length语句表达式不是数组类型" << endl;
+        exit(1);
     }
 
-    // 检查 EXP 是否为 array
-    AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-    if (exp_semant == nullptr || exp_semant->get_type() != TypeKind::ARRAY) {
-        cerr << "Error: GetArray expects an array argument" << endl;
-        return;
-    }
-    
-    // 返回整数值
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(),  // 无需额外类型信息
-        false         // getarry 结果不是左值
-    );
-    
-    // 保存语义信息
-    semant_map->setSemant(node, semant);
-}
-
-
-/**
- * EXP -> ID    // 返回变量类型
- */
-void AST_Semant_Visitor::visit(IdExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting IdExp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    string id_name = node->id;
-    
-    // 检查变量是否在当前作用域中存在
-    VarDecl* var_decl = nullptr;
-    Formal* formal = nullptr;
-    Type* var_type = nullptr;
-    bool is_lvalue = true;      // 标识符通常是左值
-    
-    // 1. 首先查找局部变量或形参 (如果当前在方法内)
-    if (!current_method.empty()) {
-        // 检查是否是局部变量
-        if (name_maps->is_method_var(current_class, current_method, id_name)) {
-            var_decl = name_maps->get_method_var(current_class, current_method, id_name);
-            var_type = var_decl->type;
-        }
-        // 检查是否是形参
-        else if (name_maps->is_method_formal(current_class, current_method, id_name)) {
-            formal = name_maps->get_method_formal(current_class, current_method, id_name);
-            var_type = formal->type;
-        }
-    }
-    
-    // 2. 如果不是局部变量或形参，检查是否是类成员变量 (如果在类内)
-    if (var_type == nullptr && !current_class.empty()) {
-        if (name_maps->is_class_var(current_class, id_name)) {
-            var_decl = name_maps->get_class_var(current_class, id_name);
-            var_type = var_decl->type;
-        }
-    }
-    
-    // 3. 如果找不到变量，报错
-    if (var_type == nullptr) {
-        cerr << "Error: Undefined identifier '" << id_name << "'" << endl;
-        return;
-    }
-    
-    // 创建并保存语义信息
-    variant<monostate, string, int> type_par;
-    if (var_type->typeKind == TypeKind::CLASS) {
-        type_par = var_type->cid->id;
-    } else if (var_type->typeKind == TypeKind::ARRAY) {
-        if (var_type->arity != nullptr) {
-            type_par = var_type->arity->val;
-        } else {
-            type_par = 0;  // 默认数组大小为0
-        }
-    } else {
-        type_par = monostate{};  // INT类型无需额外信息
-    }
-    
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        var_type->typeKind,
-        type_par,
-        is_lvalue
-    );
-    
-    semant_map->setSemant(node, semant);
-}
-
-// 无需语义信息
-void AST_Semant_Visitor::visit(OpExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting OpExp" << std::endl;
-#endif
-    return;
-}
-
-
-/**
- * EXP -> NUM    // 返回 int
- */
-void AST_Semant_Visitor::visit(IntExp* node) {
-#ifdef DEBUG
-    std::cout << "Visiting IntExp" << std::endl;
-#endif
-
-    if (node == nullptr) return;
-    
-    AST_Semant* semant = new AST_Semant(
-        AST_Semant::Kind::Value,
-        TypeKind::INT,
-        monostate(),  // 无需额外类型信息
-        false         // 整数常量不是左值
-    );
-    
-    // 保存语义信息
-    semant_map->setSemant(node, semant);
+    // 返回int
+    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, TypeKind::INT, monostate(), false));
 }
