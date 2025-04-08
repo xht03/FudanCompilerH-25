@@ -65,9 +65,11 @@ void Tree2XML::visit(FuncDecl* node) {
     element->SetAttribute("return_type", tree::typeToString(node->return_type).c_str());
     element->SetAttribute("last_temp", node->last_temp_num);
     element->SetAttribute("last_label", node->last_label_num);
-    if (node->args != nullptr) {
+    if (node->args != nullptr && node->args->size() > 0) {
+        int i=0;
         for (auto arg : *node->args) {
-            element->SetAttribute("arg_temp", arg->name());
+            element->SetAttribute(("arg_temp_"+std::to_string(i)).c_str(), arg->name());
+            i++;
         }
     }
     XMLElement *blocksElement = doc->NewElement("Blocks");
@@ -96,11 +98,12 @@ void Tree2XML::visit(Block *block) {
     element->SetAttribute("entry_label", block->entry_label->name());
     //XMLElement* exitLabelsElement = doc->NewElement("ExitLabels");
     if (block->exit_labels != nullptr) {
+        int i=0;
         for (auto label : *block->exit_labels) {
-            element->SetAttribute("exit_label", label->name());
+            element->SetAttribute(("exit_label_"+to_string(i)).c_str(), label->name());
         }
     }
-    XMLElement* stmsElement = doc->NewElement("Statements");
+    XMLElement* stmsElement = doc->NewElement("Sequence");
     if (block->sl != nullptr) {
         for (auto stm : *block->sl) {
             stm->accept(*this);
@@ -217,9 +220,11 @@ void Tree2XML::visit(Phi* node) {
     }
     XMLElement* element = doc->NewElement("Phi");
     element->SetAttribute("define", node->temp->name());
+    int i = 0;
     for (auto arg : *node->args) {
-        element->SetAttribute("arg", arg.first->name());
-        element->SetAttribute("from", arg.second->name());
+        element->SetAttribute(("temp_"+to_string(i)).c_str(), arg.first->name());
+        element->SetAttribute(("from_"+to_string(i)).c_str(), arg.second->name());
+        i = i + 1;
     }
     visit_result = element;
 }
@@ -229,6 +234,10 @@ void Tree2XML::visit(ExpStm* node) {
     cout << "Visiting ExpressionStatement" << endl;
 #endif
     if (node == nullptr) {
+        visit_result = nullptr;
+        return;
+    }
+    if (node->exp == nullptr) {
         visit_result = nullptr;
         return;
     }
@@ -248,6 +257,7 @@ void Tree2XML::visit(Binop* node) {
     }
     tinyxml2::XMLElement* element = doc->NewElement("BinOp");
     element->SetAttribute("op", node->op.c_str());
+    element->SetAttribute("type", node->type == Type::INT ? "INT" : "PTR");
     node->left->accept(*this);
     if (visit_result != nullptr) element->InsertEndChild(visit_result);
     node->right->accept(*this);
@@ -304,7 +314,19 @@ void Tree2XML::visit(Name* node) {
         return;
     }
     XMLElement* element = doc->NewElement("Name");
-    element->SetAttribute("name", node->name->name());
+    Label *label = node->name;
+    String_Label *slabel = node->sname;
+    string name;
+    if (label != nullptr) { //then it's a string_label
+        name = label->name();
+    } else if (slabel != nullptr) {
+        name = slabel->str();
+    } else {
+        cerr << "Error: Name has no label or string label!" << endl;
+        visit_result = nullptr;
+        return;
+    }   
+    element->SetAttribute("name", name.c_str());
     visit_result = element;
 }
 
@@ -327,6 +349,7 @@ void Tree2XML::visit(Call* node) {
 #endif
     XMLElement* element = doc->NewElement("Call");
     element->SetAttribute("id", node->id.c_str());
+    element->SetAttribute("type", node->type == Type::INT ? "INT" : "PTR");
     node->obj->accept(*this);
     if (visit_result != nullptr) element->InsertEndChild(visit_result);
     XMLElement* argsElement = doc->NewElement("Arguments");
@@ -348,6 +371,7 @@ void Tree2XML::visit(ExtCall* node) {
     }
     tinyxml2::XMLElement* element = doc->NewElement("ExtCall");
     element->SetAttribute("extfun", node->extfun.c_str());
+    element->SetAttribute("type", node->type == Type::INT ? "INT" : "PTR");
     tinyxml2::XMLElement* argsElement = doc->NewElement("Arguments");
     for (auto arg : *node->args) {
         arg->accept(*this);

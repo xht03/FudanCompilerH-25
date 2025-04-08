@@ -13,11 +13,6 @@
 using namespace std;
 using namespace fdmj;
 
-// 1. 判断参数非空
-// 2. 执行名称映射操作
-// 3. 更新当前类名或方法名
-// 4. 调用accept(visit)
-
 // 程序: 主方法 类声明列表
 // PROG: MAINMETHOD CLASSDECLLIST
 void AST_Name_Map_Visitor::visit(Program* node)
@@ -35,12 +30,12 @@ void AST_Name_Map_Visitor::visit(MainMethod* node)
     // 执行名称映射操作 (类, 类->方法)
     if (!name_maps->add_class("")) {
         cerr << node->getPos()->print() << endl;
-        cerr << "- 主方法类名已存在" << endl;
+        cerr << "- Main method class name already exists" << endl;
         exit(1);
     }
     if (!name_maps->add_method("", "main", new Type(node->getPos()))) {
         cerr << node->getPos()->print() << endl;
-        cerr << "- 主方法名已存在" << endl;
+        cerr << "- Main method name already exists" << endl;
         exit(1);
     }
 
@@ -81,19 +76,19 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
     // 执行名称映射操作 (类)
     if (!name_maps->add_class(node->id->id)) {
         cerr << node->id->getPos()->print() << endl;
-        cerr << "- 类名已存在: " << node->id->id << endl;
+        cerr << "- Class name already exists: " << node->id->id << endl;
         exit(1);
     }
 
     if (node->eid != nullptr) {
         if (!name_maps->add_class_hiearchy(node->id->id, node->eid->id)) {
             cerr << node->eid->getPos()->print() << endl;
-            cerr << "- 类继承关系错误: " << node->id->id << " extends " << node->eid->id << endl;
+            cerr << "- Class inheritance error: " << node->id->id << " extends " << node->eid->id << endl;
             exit(1);
         }
         if (!name_maps->is_class(node->eid->id)) {
             cerr << node->eid->getPos()->print() << endl;
-            cerr << "- 父类不存在: " << node->id->id << " extends " << node->eid->id << endl;
+            cerr << "- Parent class does not exist: " << node->id->id << " extends " << node->eid->id << endl;
             exit(1);
         }
 
@@ -131,7 +126,7 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
                 Type* t2 = name_maps->get_method_type(node->id->id, m);
                 if (!is_same_type(t1, t2)) {
                     cerr << node->id->getPos()->print() << endl;
-                    cerr << "- 覆写类方法返回类型不同: " << node->id->id << "->" << m << endl;
+                    cerr << "- Override method return type mismatch: " << node->id->id << "->" << m << endl;
                     exit(1);
                 }
 
@@ -140,7 +135,7 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
                 vector<Formal*>* fsl2 = name_maps->get_method_formal_list(node->id->id, m);
                 if (fsl1->size() != fsl2->size()) {
                     cerr << node->id->getPos()->print() << endl;
-                    cerr << "- 覆写类方法参数个数不同: " << node->id->id << "->" << m << endl;
+                    cerr << "- Override method parameter count mismatch: " << node->id->id << "->" << m << endl;
                     exit(1);
                 }
                 for (int i = 0; i < fsl1->size(); i++) {
@@ -148,7 +143,7 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
                     Formal* f2 = fsl2->at(i);
                     if (!is_same_type(f1->type, f2->type)) {
                         cerr << node->id->getPos()->print() << endl;
-                        cerr << "- 覆写类方法参数类型不同: " << node->id->id << "->" << m << "->" << f1->id->id << endl;
+                        cerr << "- Override method parameter type mismatch: " << node->id->id << "->" << m << "->" << f1->id->id << endl;
                         exit(1);
                     }
                 }
@@ -165,13 +160,13 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
                     fsl.push_back(f->id->id);
                     if (!name_maps->add_method_formal(node->id->id, m, f->id->id, f)) {
                         cerr << f->id->getPos()->print() << endl;
-                        cerr << "- 类方法参数名已存在: " << node->id->id << "->" << m << "->" << f->id->id << endl;
+                        cerr << "- Method parameter name already exists: " << node->id->id << "->" << m << "->" << f->id->id << endl;
                         exit(1);
                     }
                 }
                 if (!name_maps->add_method_formal_list(node->id->id, m, fsl)) {
                     cerr << node->id->getPos()->print() << endl;
-                    cerr << "- 类方法参数列表已存在: " << node->id->id << "->" << m << endl;
+                    cerr << "- Method parameter list already exists: " << node->id->id << "->" << m << endl;
                     exit(1);
                 }
             }
@@ -193,7 +188,7 @@ void AST_Name_Map_Visitor::visit(VarDecl* node)
     if (current_method_name != "") {
         if (!name_maps->add_method_var(current_class_name, current_method_name, node->id->id, node)) {
             cerr << node->id->getPos()->print() << endl;
-            cerr << "- 类方法局部变量名已存在: " << current_class_name << "->" << current_method_name << "->" << node->id->id << endl;
+            cerr << "- Method local variable name already exists: " << current_class_name << "->" << current_method_name << "->" << node->id->id << endl;
             exit(1);
         }
     }
@@ -202,7 +197,7 @@ void AST_Name_Map_Visitor::visit(VarDecl* node)
     else {
         if (!name_maps->add_class_var(current_class_name, node->id->id, node)) {
             cerr << node->id->getPos()->print() << endl;
-            cerr << "- 类成员变量名已存在: " << current_class_name << "->" << node->id->id << endl;
+            cerr << "- Class member variable name already exists: " << current_class_name << "->" << node->id->id << endl;
             exit(1);
         }
     }
@@ -214,9 +209,8 @@ void AST_Name_Map_Visitor::visit(MethodDecl* node)
 {
     // 执行名称映射操作 (类->方法, 类->方法->参数列表)
     if (!name_maps->add_method(current_class_name, node->id->id, node->type)) {
-        // TODO: 子类可以覆盖其祖先类中声明的方法, 但必须具有相同(返回类型,参数类型)
         cerr << node->id->getPos()->print() << endl;
-        cerr << "- 类方法名已存在: " << current_class_name << "->" << current_method_name << endl;
+        cerr << "- Method name already exists: " << current_class_name << "->" << current_method_name << endl;
         exit(1);
     }
     {
@@ -225,7 +219,7 @@ void AST_Name_Map_Visitor::visit(MethodDecl* node)
             vl.push_back(f->id->id);
         if (!name_maps->add_method_formal_list(current_class_name, node->id->id, vl)) {
             cerr << node->id->getPos()->print() << endl;
-            cerr << "- 类方法参数列表已存在: " << current_class_name << "->" << node->id->id << endl;
+            cerr << "- Method parameter list already exists: " << current_class_name << "->" << node->id->id << endl;
             exit(1);
         }
     }
@@ -254,7 +248,7 @@ void AST_Name_Map_Visitor::visit(Formal* node)
     // 执行名称映射操作 (类->方法->参数)
     if (!name_maps->add_method_formal(current_class_name, current_method_name, node->id->id, node)) {
         cerr << node->id->getPos()->print() << endl;
-        cerr << "- 类方法参数名已存在: " << current_class_name << "->" << current_method_name << "->" << node->id->id << endl;
+        cerr << "- Method parameter name already exists: " << current_class_name << "->" << current_method_name << "->" << node->id->id << endl;
         exit(1);
     }
 }

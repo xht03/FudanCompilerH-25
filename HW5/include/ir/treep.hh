@@ -259,7 +259,9 @@ class Eseq : public Exp {
 class Name : public Exp { //convert a label to a ptr (address)
   public:
     Label *name;
-    Name(Label *name) : name(name) {type = Type::PTR;}
+    String_Label *sname;
+    Name(Label *name) : Exp(Type::PTR), name(name), sname(nullptr) {}
+    Name(String_Label *sname) : Exp(Type::PTR), name(nullptr), sname(sname) {}
     Kind getTreeKind() { return Kind::NAME; }
     void accept(Visitor &v) { v.visit(this); }
 };

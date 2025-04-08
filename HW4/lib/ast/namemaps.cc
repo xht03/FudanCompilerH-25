@@ -56,15 +56,15 @@ bool Name_Maps::add_class_hiearchy(string class_name, string parent_name) {
     return true;
 }
 
-set<string>* Name_Maps::get_ancestors(string class_name) {
-    set<string>* ancestors = new set<string>();
+vector<string>* Name_Maps::get_ancestors(string class_name) {
+    vector<string>* ancestors = new vector<string>();
     if (classHierachy.find(class_name) == classHierachy.end()) {
         return ancestors;
     }
     //below works if no loop
     string parent_name = classHierachy[class_name];
     while (true) {
-        ancestors->insert(parent_name);
+        ancestors->push_back(parent_name);
         if (classHierachy.find(parent_name) == classHierachy.end()) {
             break;
         }

@@ -42,6 +42,12 @@ public:
      virtual Tr_ex* unEx(Temp_map* tm) = 0;
      virtual Tr_cx* unCx(Temp_map* tm) = 0;
      virtual Tr_nx* unNx(Temp_map* tm) = 0;
+     enum Tr_Exp_Kind {
+          TR_EX,
+          TR_NX,
+          TR_CX
+     };
+     virtual Tr_Exp_Kind getKind() = 0;
 };
 
 //for Tr_Exp classes
@@ -54,6 +60,9 @@ public:
      Tr_cx* unCx(Temp_map* tm) override;
      Tr_nx* unNx(Temp_map* tm) override;
      Tr_ex* unEx(Temp_map* tm) override;
+     Tr_Exp_Kind getKind () override {
+          return TR_EX;
+     }
 };
      
 class Tr_nx : public Tr_Exp {
@@ -65,6 +74,9 @@ public:
      Tr_cx* unCx(Temp_map* tm) override;
      Tr_nx* unNx(Temp_map* tm) override;
      Tr_ex* unEx(Temp_map* tm) override;
+     Tr_Exp_Kind getKind () override {
+          return TR_NX;
+     }
 };
      
 class Tr_cx : public Tr_Exp {
@@ -72,6 +84,7 @@ public:
      Patch_list* true_list;
      Patch_list* false_list;
      tree::Stm* stm;
+     
      Tr_cx(Patch_list* t, Patch_list* f, tree::Stm* s) {
           true_list = t;
           false_list = f;
@@ -80,6 +93,9 @@ public:
      Tr_ex* unEx(Temp_map* tm) override;
      Tr_nx* unNx(Temp_map* tm) override;
      Tr_cx* unCx(Temp_map* tm) override;
+     Tr_Exp_Kind getKind () override {
+          return TR_CX;
+     }
 };
      
 #endif

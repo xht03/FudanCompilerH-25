@@ -30,7 +30,7 @@ public:
 
     bool detected_loop(map<string, string> classHierachy);
     bool add_class_hiearchy(string class_name, string parent_name); //return false if loop found
-    set<string>* get_ancestors(string class_name);
+    vector<string>* get_ancestors(string class_name);
 
     bool is_method(string class_name, string method_name); 
     bool add_method(string class_name, string method_name);  //return false if already exists
