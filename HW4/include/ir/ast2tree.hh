@@ -23,17 +23,17 @@ tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map);
 Class_table* generate_class_table(AST_Semant_Map* semant_map);
 Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm);
 
-//class table is to map each class var and method to an address offset
-//this uses a "universal class" method, i.e., all the classes use the 
-//same class table, with all the possible vars and methods of all classes
-//listed in the same record layout.
+
+// Class_table 用于将每个类的变量和方法映射到地址偏移量
+// 这里采用 "通用类" 方法，即所有类共享同一个类表
+// 其中包含所有类可能存在的变量和方法，并按相同的记录布局排列。
 class Class_table {
 public:
      map<string, int> var_pos_map;
      map<string, int> method_pos_map;
      Class_table() {
-          var_pos_map = map<string, int>();
-          method_pos_map = map<string, int>();
+          var_pos_map = map<string, int>();       // 变量名 -> 内存偏移量
+          method_pos_map = map<string, int>();    // 方法名 -> 方法表索引
      };
      ~Class_table() {
           var_pos_map.clear();
@@ -47,23 +47,27 @@ public:
      }
 };
 
-//For each method, there is a var table, including formal and local var.
-//(if a method local has a conflict in var name with formal, then local var
-//is used (ignore the formal))
-//Hence, local var will override formal in the Method_var_table.
-//Note: each local var and formal has a type as well (INT or PTR)
-//The return of a method is also taken as a formal, with a special name _^return^_method_name.
+
+// 每个方法都有一个变量表，包含形参和局部变量
+// 如果方法的局部变量与形参名称冲突，则使用局部变量（忽略形参）
+// 因此，在 Method_var_table 中，局部变量会覆盖形参
+// 注意：每个局部变量和形参都有类型（INT 或 PTR）
+// 方法的返回值也被视为一个特殊形参，其命名为 ​_^return^_method_name
 class Method_var_table {
 public:
-     map<string, tree::Temp*> *var_temp_map;
-     map<string, tree::Type> *var_type_map;
+     map<string, tree::Temp*> *var_temp_map;      // 变量名 -> 临时变量
+     map<string, tree::Type> *var_type_map;       // 变量名 -> 变量类型
      Method_var_table() {
           var_temp_map = new map<string, tree::Temp*>();
           var_type_map = new map<string, tree::Type>();
      };
+
+     // 获取 var_name 对应的临时变量
      tree::Temp* get_var_temp(string var_name) {
           return var_temp_map->at(var_name);
      }
+
+     // 获取 var_name 对应的变量类型 
      tree::Type get_var_type(string var_name) {
           return var_type_map->at(var_name);
      }
