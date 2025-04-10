@@ -55,9 +55,11 @@ void ASTToTreeVisitor::visit(fdmj::Program* node) {
 
 
     // 访问所有类声明，生成所有方法的 FuncDecl
-    for (auto& class_decl : *(node->cdl)) {
-        class_decl->accept(*this);
-        // 注意：ClassDecl 访问会将方法的 FuncDecl 添加到 func_decl_list
+    if (node->cdl != nullptr) {
+        for (auto& class_decl : *(node->cdl)) {
+            class_decl->accept(*this);
+            // 注意：ClassDecl 访问会将方法的 FuncDecl 添加到 func_decl_list
+        }
     }
 
     // 创建程序节点

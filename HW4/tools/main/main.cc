@@ -38,7 +38,7 @@ int main(int argc, const char *argv[]) {
      chdir("../../test/output_example");
      
      string file;
-     file = "hw4test02";
+     file = "hw4test04";
 
     // boilerplate output filenames (used throughout the compiler pipeline)
     string file_ast = file + ".2-semant.ast"; // ast in xml
