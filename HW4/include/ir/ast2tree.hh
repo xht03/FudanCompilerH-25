@@ -78,12 +78,15 @@ public:
      tree::Tree *visit_tree_result = nullptr;
 
      //** Here add some "visitor-level members" */
+     Compiler_Config* compiler_config = nullptr;       // 编译器配置
      AST_Semant_Map* semant_map = nullptr;             // 语义映射表
-     Temp_map* temp_map = nullptr;                     // 临时变量映射表
+     Temp_map* temp_map = nullptr;                     // 临时变量(虚拟寄存器)映射表
 
      Class_table* class_table = nullptr;               // class table
      Method_var_table* method_var_table = nullptr;     // method var table
 
+     tree::Label* current_loop_start_label = nullptr;  // 当前循环开始标签
+     tree::Label* current_loop_end_label = nullptr;    // 当前循环结束标签
 
 
      ~ASTToTreeVisitor() { }

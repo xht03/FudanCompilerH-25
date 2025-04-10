@@ -27,11 +27,389 @@ tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map) {
     return dynamic_cast<tree::Program*>(result);
 }
 
-void ASTToTreeVisitor::visit(fdmj::Program* node) {
+// 地址计算 需要参考 config.hh
 
+
+void ASTToTreeVisitor::visit(fdmj::Program* node) {
+    
 }
 
 
+
+
+void ASTToTreeVisitor::visit(fdmj::Formal* node) {
+    
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Nested* node) {
+    // 如果语句列表为空，返回空序列
+    if (node->sl == nullptr || node->sl->empty()) {
+        visit_tree_result = new tree::Seq();
+        return;
+    }
+
+    // 创建新的语句列表
+    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
+
+    for (auto& stm : *(node->sl)) {
+        // 访问子语句
+        stm->accept(*this);
+        tree::Stm* tree_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
+        if (tree_stm != nullptr) {
+            stm_list->push_back(tree_stm);
+        } else {
+            cerr << "Warning: Statement in Nested block is not a valid statement, skipping." << endl;
+        }
+    }
+
+    // 创建语句序列
+    tree::Seq* seq = new tree::Seq(stm_list);
+    visit_tree_result = seq;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::If* node) {
+    // 创建标签
+    tree::Label* true_label = temp_map->newlabel();    // 真分支标签
+    tree::Label* false_label = temp_map->newlabel();   // 假分支标签
+    tree::Label* end_label = temp_map->newlabel();     // 结束标签
+
+    // 创建语句列表
+    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
+
+    // 访问条件表达式
+    node->exp->accept(*this);
+    tree::Exp* cond_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (cond_exp == nullptr) {
+        cerr << "Error: if condition is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 1. 条件跳转：条件为真时跳转到true_label，为假时跳转到false_label
+    tree::Cjump* cjump = new tree::Cjump("!=", cond_exp, new tree::Const(0), true_label, false_label);
+    stm_list->push_back(cjump);
+
+    // 2. 真分支标签
+    stm_list->push_back(new tree::LabelStm(true_label));
+
+    // 3. 真分支语句
+    if (node->stm1 != nullptr) {
+        node->stm1->accept(*this);
+        tree::Stm* true_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
+        if (true_stm != nullptr) {
+            stm_list->push_back(true_stm);
+        }
+    }
+
+    // 4. 真分支结束后跳转到end_label
+    stm_list->push_back(new tree::Jump(end_label));
+
+    // 5. 假分支标签
+    stm_list->push_back(new tree::LabelStm(false_label));
+
+    // 6. 假分支语句（如果有）
+    if (node->stm2 != nullptr) {
+        node->stm2->accept(*this);
+        tree::Stm* false_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
+        if (false_stm != nullptr) {
+            stm_list->push_back(false_stm);
+        }
+    }
+
+    // 结束标签
+    stm_list->push_back(new tree::LabelStm(end_label));
+
+    // 创建语句序列
+    tree::Seq* seq = new tree::Seq(stm_list);
+    visit_tree_result = seq;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::While* node) {
+    // 创建标签
+    tree::Label* loop_start = temp_map->newlabel();  // 循环开始标签
+    tree::Label* loop_cond = temp_map->newlabel();   // 条件检查标签
+    tree::Label* loop_end = temp_map->newlabel();    // 循环结束标签
+
+    // 保存之前循环的标签（用于处理嵌套循环）
+    tree::Label* old_start = current_loop_start_label;
+    tree::Label* old_end = current_loop_end_label;
+
+    // 创建语句列表
+    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
+
+    // 1. 开始标签
+    stm_list->push_back(new tree::LabelStm(loop_start));
+
+    // 2. 无条件跳转到条件判断
+    stm_list->push_back(new tree::Jump(loop_cond));
+
+    // 3. 循环体入口标签（循环体开始前先判断条件）
+    tree::LabelStm* body_label = new tree::LabelStm(temp_map->newlabel());
+    stm_list->push_back(body_label);
+
+    // 4. 循环体（如果有）
+    if (node->stm != nullptr) {
+        node->stm->accept(*this);
+        tree::Stm* body = dynamic_cast<tree::Stm*>(visit_tree_result);
+        if (body != nullptr) {
+            stm_list->push_back(body);
+        }
+    }
+
+    // 5. 条件检查标签
+    stm_list->push_back(new tree::LabelStm(loop_cond));
+
+    // 6. 条件判断（访问条件表达式）
+    node->exp->accept(*this);
+    tree::Exp* cond_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (cond_exp == nullptr) {
+        cerr << "Error: while condition is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        
+        // 恢复之前的循环标签
+        current_loop_start_label = old_start;
+        current_loop_end_label = old_end;
+        return;
+    }
+
+    // 7. 条件跳转（条件为真时继续循环，否则退出）
+    tree::Cjump* cjump = new tree::Cjump("!=", cond_exp, new tree::Const(0), 
+                                          body_label->label, loop_end);
+
+    // 8. 循环结束标签
+    stm_list->push_back(new tree::LabelStm(loop_end));
+
+    // 创建语句序列
+    tree::Seq* seq = new tree::Seq(stm_list);
+    visit_tree_result = seq;
+
+    // 恢复之前的循环标签
+    current_loop_start_label = old_start;
+    current_loop_end_label = old_end;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Assign* node) {
+    // 首先访问左侧表达式
+    node->left->accept(*this);
+    tree::Exp* dst = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (dst == nullptr) {
+        cerr << "Error: Left-hand side of assignment is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 检查左侧表达式是否为左值
+    AST_Semant* left_semant = semant_map->getSemant(node->left);
+    if (left_semant == nullptr || !left_semant->is_lvalue()) {
+        cerr << "Error: Left-hand side of assignment is not an lvalue." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 访问右侧表达式
+    node->exp->accept(*this);
+    tree::Exp* src = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (src == nullptr) {
+        cerr << "Error: Right-hand side of assignment is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 创建赋值节点
+    tree::Move* move = new tree::Move(dst, src);
+    visit_tree_result = move;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::CallStm* node) {
+    // 访问对象
+    node->obj->accept(*this);
+    tree::Exp* obj_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (obj_exp == nullptr) {
+        cerr << "Error: object expression is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 访问参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+    if (node->par != nullptr) {
+        for (auto& param : *(node->par)) {
+            // 访问参数
+            param->accept(*this);
+            tree::Exp* arg_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+            
+            if (arg_exp == nullptr) {
+                cerr << "Error: parameter expression is not a valid expression." << endl;
+                delete args;
+                visit_tree_result = nullptr;
+                return;
+            }
+            
+            args->push_back(arg_exp);
+        }
+    }
+
+    // 创建调用节点，注意 CallStm 不关心返回值，所以类型设置为 INT
+    tree::Call* call = new tree::Call(tree::Type::INT, node->name->id, obj_exp, args);
+
+    // CallStm 是语句，不是表达式，所以需要包装在 ExpStm 中
+    tree::ExpStm* exp_stm = new tree::ExpStm(call);
+    visit_tree_result = exp_stm;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Continue* node) {
+    // 检查是否在循环内
+    if (current_loop_start_label == nullptr) {
+        cerr << "Error: continue statement outside of loop." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 创建跳转指令，跳转到循环开始标签
+    tree::Jump* jump = new tree::Jump(current_loop_start_label);
+    visit_tree_result = jump;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Break* node) {
+    // 获取当前循环的结束标签
+    if (current_loop_end_label == nullptr) {
+        cerr << "Error: break statement outside of loop." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 创建跳转指令，跳转到循环结束标签
+    tree::Jump* jump = new tree::Jump(current_loop_end_label);
+    visit_tree_result = jump;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Return* node) {
+    // 访问返回值
+    node->exp->accept(*this);
+    tree::Exp* return_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (return_exp == nullptr) {
+        cerr << "Error: return expression is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 创建 Return 节点
+    tree::Return* return_node = new tree::Return(return_exp);
+    visit_tree_result = return_node;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::PutInt* node) {
+    // 创建参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    // 访问整数表达式
+    node->exp->accept(*this);
+    tree::Exp* int_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (int_exp == nullptr) {
+        cerr << "Error: integer expression is not a valid expression." << endl;
+        delete args;
+        visit_tree_result = nullptr;
+        return;
+    }
+    args->push_back(int_exp);
+
+    // 创建外部调用节点
+    tree::ExtCall* ext_call = new tree::ExtCall(tree::Type::INT, "putint", args);
+
+    // putint 是语句，不是表达式
+    tree::ExpStm* exp_stm = new tree::ExpStm(ext_call);
+    visit_tree_result = exp_stm;
+}
+
+
+
+
+void ASTToTreeVisitor::visit(fdmj::PutCh* node) {
+    // 创建参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    // 访问参数
+    node->exp->accept(*this);
+    tree::Exp* char_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (char_exp == nullptr) {
+        cerr << "Error: character expression is not a valid expression." << endl;
+        delete args;
+        visit_tree_result = nullptr;
+        return;
+    }
+    args->push_back(char_exp);
+
+    // 创建外部调用节点
+    tree::ExtCall* ext_call = new tree::ExtCall(tree::Type::INT, "putch", args);
+
+    // putch 是语句，不是表达式，所以需要包装在 ExpStm 中
+    tree::ExpStm* exp_stm = new tree::ExpStm(ext_call);
+    visit_tree_result = exp_stm;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::PutArray* node) {
+    // 创建参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    // 访问 n 表达式 (打印数量)
+    node->n->accept(*this);
+    tree::Exp* size_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (size_exp == nullptr) {
+        cerr << "Error: size expression is not a valid expression." << endl;
+        delete args;
+        visit_tree_result = nullptr;
+        return;
+    }
+    args->push_back(size_exp);
+
+    // 访问 arr 表达式 (数组)
+    node->arr->accept(*this);
+    tree::Exp* array_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (array_exp == nullptr) {
+        cerr << "Error: array expression is not a valid expression." << endl;
+        delete args;
+        visit_tree_result = nullptr;
+        return;
+    }
+    args->push_back(array_exp);
+
+    // 创建外部调用节点
+    tree::ExtCall* ext_call = new tree::ExtCall(tree::Type::INT, "putarray", args);
+
+    // putarray 是语句，不是表达式
+    tree::ExpStm* exp_stm = new tree::ExpStm(ext_call);
+    visit_tree_result = exp_stm;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Starttime* node) {
+    // 创建空的参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    // 创建节点
+    tree::ExtCall* ext_call = new tree::ExtCall(tree::Type::INT, "starttime", args);
+    visit_tree_result = ext_call;
+}
+
+
+void ASTToTreeVisitor::visit(fdmj::Stoptime* node) {
+    // 创建空的参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    // 创建节点
+    tree::ExtCall* ext_call = new tree::ExtCall(tree::Type::INT, "stoptime", args);
+    visit_tree_result = ext_call;
+}
 
 
 void ASTToTreeVisitor::visit(fdmj::BinaryOp* node) {
@@ -83,12 +461,167 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node) {
 }
 
 
+void ASTToTreeVisitor::visit(fdmj::UnaryOp* node) {
+    // 访问操作数
+    node->exp->accept(*this);
+    tree::Exp* operand = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (operand == nullptr) {
+        cerr << "Error: operand is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 获取语义信息
+    AST_Semant* semant = semant_map->getSemant(node);
+    if (semant == nullptr) {
+        cerr << "Error: semantic information not found for the node." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    tree::Type result_type;
+    if (semant->get_type() == TypeKind::INT) {
+        result_type = tree::Type::INT;
+    } else {
+        cerr << "Error: unexpected type for unary operation." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 转换为二元操作
+    if (node->op->op == "-") {
+        // 负号：0 - exp
+        tree::Const* zero = new tree::Const(0);
+        tree::Binop* binop = new tree::Binop(result_type, "-", zero, operand);
+        visit_tree_result = binop;
+    } 
+    else if (node->op->op == "!") {
+        // 逻辑非：1 xor exp
+        tree::Const* one = new tree::Const(1);
+        tree::Binop* binop = new tree::Binop(result_type, "xor", one, operand);
+        visit_tree_result = binop;
+    }
+    else {
+        cerr << "Error: unsupported unary operator: " << node->op->op << endl;
+        visit_tree_result = nullptr;
+    }
+
+}
 
 
-// 地址计算 需要参考 config.hh
+
+
+void ASTToTreeVisitor::visit(fdmj::ArrayExp* node) {
+    // 访问数组，获取数组的基址
+    node->arr->accept(*this);
+    tree::Exp* arr_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (arr_exp == nullptr) {
+        cerr << "Error: array expression is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 访问索引
+    node->index->accept(*this);
+    tree::Exp* index_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (index_exp == nullptr) {
+        cerr << "Error: index expression is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 获取语义信息
+    AST_Semant* semant = semant_map->getSemant(node);
+    if (semant == nullptr) {
+        cerr << "Error: semantic information not found for ArrayExp." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 确定数组类型
+    tree::Type element_type;      // 数组元素类型
+    int element_size;           // 元素大小
+    if (semant->get_type() == TypeKind::INT) {
+        element_type = tree::Type::INT;
+        element_size = compiler_config->get("int_length");
+    }
+    else if (semant->get_type() == TypeKind::ARRAY) {
+        element_type = tree::Type::PTR;
+        element_size = compiler_config->get("address_length");
+    }
+    else if (semant->get_type() == TypeKind::CLASS) {
+        element_type = tree::Type::PTR;
+        element_size = compiler_config->get("address_length");
+    }
+    else {
+        cerr << "Error: unknown type for ArrayExp." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 计算元素地址 array_base + index * element_size
+    tree::Binop* addr_exp = new tree::Binop(tree::Type::PTR, "+", arr_exp, 
+        new tree::Binop(tree::Type::INT, "*", index_exp, new tree::Const(element_size)));
+
+    // 创建访存表达式
+    tree::Mem* mem_exp = new tree::Mem(element_type, addr_exp);
+    visit_tree_result = mem_exp;
+}
 
 void ASTToTreeVisitor::visit(fdmj::CallExp* node) {
-    
+    // 访问对象
+    node->obj->accept(*this);
+    tree::Exp* obj_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+    if (obj_exp == nullptr) {
+        cerr << "Error: object expression is not a valid expression." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 获取语义信息
+    AST_Semant* semant = semant_map->getSemant(node);
+    if (semant == nullptr) {
+        cerr << "Error: semantic information not found for CallExp." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 确定返回类型
+    tree::Type result_type;
+    if (semant->get_type() == TypeKind::INT) {
+        result_type = tree::Type::INT;
+    }
+    else if (semant->get_type() == TypeKind::ARRAY) {
+        result_type = tree::Type::PTR;
+    }
+    else if (semant->get_type() == TypeKind::CLASS) {
+        result_type = tree::Type::PTR;
+    }
+    else {
+        cerr << "Error: unknown type for CallExp." << endl;
+        visit_tree_result = nullptr;
+        return;
+    }
+
+    // 参数列表
+    std::vector<tree::Exp*>* args = new std::vector<tree::Exp*>();
+
+    if (node->par != nullptr) {
+        for (auto& arg : *node->par) {
+            arg->accept(*this);
+            tree::Exp* arg_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
+            if (arg_exp == nullptr) {
+                cerr << "Error: argument expression is not a valid expression." << endl;
+                delete args;
+                visit_tree_result = nullptr;
+                return;
+            }
+            args->push_back(arg_exp);
+        }
+    }
+
+    // 创建节点
+    tree::Call* call_node = new tree::Call(result_type, node->name->id, obj_exp, args);
 }
 
 
