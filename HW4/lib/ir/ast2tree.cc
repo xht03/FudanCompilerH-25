@@ -433,125 +433,74 @@ void ASTToTreeVisitor::visit(fdmj::Nested* node) {
 
 
 void ASTToTreeVisitor::visit(fdmj::If* node) {
-    // 创建标签
-    tree::Label* true_label = temp_map->newlabel();    // 真分支标签
-    tree::Label* false_label = temp_map->newlabel();   // 假分支标签
-    tree::Label* end_label = temp_map->newlabel();     // 结束标签
 
-    // 创建语句列表
-    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
-
-    // 访问条件表达式
+    // 条件表达式
     node->exp->accept(*this);
-    tree::Exp* cond_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
-    if (cond_exp == nullptr) {
-        cerr << "Error: if condition is not a valid expression." << endl;
-        visit_tree_result = nullptr;
-        return;
-    }
+    Tr_cx* cond_exp = visit_exp_result->unCx(temp_map);
 
-    // 1. 条件跳转：条件为真时跳转到true_label，为假时跳转到false_label
-    tree::Cjump* cjump = new tree::Cjump("!=", cond_exp, new tree::Const(0), true_label, false_label);
-    stm_list->push_back(cjump);
+    auto L1 = cond_exp->true_list;
+    auto L2 = cond_exp->false_list;
+    auto L_true = temp_map->newlabel();
+    auto L_false = temp_map->newlabel();
+    auto L_end = temp_map->newlabel();
 
-    // 2. 真分支标签
-    stm_list->push_back(new tree::LabelStm(true_label));
+    // 用L_true填补L1, 用L_false填补L2
+    L1->patch(L_true);
+    L2->patch(L_false);
 
-    // 3. 真分支语句
-    if (node->stm1 != nullptr) {
-        node->stm1->accept(*this);
-        tree::Stm* true_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
-        if (true_stm != nullptr) {
-            stm_list->push_back(true_stm);
-        }
-    }
+    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
+    stm_list->push_back(cond_exp->stm);
+    stm_list->push_back(new tree::LabelStm(L_true));
 
-    // 4. 真分支结束后跳转到end_label
-    stm_list->push_back(new tree::Jump(end_label));
+    node->stm1->accept(*this);
+    tree::Stm* stm1 = static_cast<tree::Stm*>(visit_tree_result);
+    stm_list->push_back(stm1);
+    stm_list->push_back(new tree::Jump(L_end));
 
-    // 5. 假分支标签
-    stm_list->push_back(new tree::LabelStm(false_label));
-
-    // 6. 假分支语句（如果有）
-    if (node->stm2 != nullptr) {
+    stm_list->push_back(new tree::LabelStm(L_false));
+    if (node->stm2) {
         node->stm2->accept(*this);
-        tree::Stm* false_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
-        if (false_stm != nullptr) {
-            stm_list->push_back(false_stm);
-        }
+        tree::Stm* stm2 = static_cast<tree::Stm*>(visit_tree_result);
+        stm_list->push_back(stm2);
     }
 
-    // 结束标签
-    stm_list->push_back(new tree::LabelStm(end_label));
+    stm_list->push_back(new tree::LabelStm(L_end));
 
-    // 创建语句序列
-    tree::Seq* seq = new tree::Seq(stm_list);
-    visit_tree_result = seq;
+    visit_tree_result = new tree::Seq(stm_list);
 }
 
 
 void ASTToTreeVisitor::visit(fdmj::While* node) {
-    // 创建标签
-    tree::Label* loop_start = temp_map->newlabel();  // 循环开始标签
-    tree::Label* loop_cond = temp_map->newlabel();   // 条件检查标签
-    tree::Label* loop_end = temp_map->newlabel();    // 循环结束标签
-
-    // 保存之前循环的标签（用于处理嵌套循环）
-    tree::Label* old_start = current_loop_start_label;
-    tree::Label* old_end = current_loop_end_label;
-
-    // 创建语句列表
-    std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
-
-    // 1. 开始标签
-    stm_list->push_back(new tree::LabelStm(loop_start));
-
-    // 2. 无条件跳转到条件判断
-    stm_list->push_back(new tree::Jump(loop_cond));
-
-    // 3. 循环体入口标签（循环体开始前先判断条件）
-    tree::LabelStm* body_label = new tree::LabelStm(temp_map->newlabel());
-    stm_list->push_back(body_label);
-
-    // 4. 循环体（如果有）
-    if (node->stm != nullptr) {
-        node->stm->accept(*this);
-        tree::Stm* body = dynamic_cast<tree::Stm*>(visit_tree_result);
-        if (body != nullptr) {
-            stm_list->push_back(body);
-        }
-    }
-
-    // 5. 条件检查标签
-    stm_list->push_back(new tree::LabelStm(loop_cond));
-
-    // 6. 条件判断（访问条件表达式）
+    // 条件表达式
     node->exp->accept(*this);
-    tree::Exp* cond_exp = dynamic_cast<tree::Exp*>(visit_tree_result);
-    if (cond_exp == nullptr) {
-        cerr << "Error: while condition is not a valid expression." << endl;
-        visit_tree_result = nullptr;
-        
-        // 恢复之前的循环标签
-        current_loop_start_label = old_start;
-        current_loop_end_label = old_end;
-        return;
+    Tr_cx* cond_exp = visit_exp_result->unCx(temp_map);
+
+    auto L1 = cond_exp->true_list;
+    auto L2 = cond_exp->false_list;
+
+    auto L_while = temp_map->newlabel();
+    auto L_true = temp_map->newlabel();
+    auto L_end = temp_map->newlabel();
+
+    L1->patch(L_true);
+    L2->patch(L_end);
+
+    vector<tree::Stm*>* stm_list = new vector<tree::Stm*>();
+    stm_list->push_back(new tree::LabelStm(L_while));
+    stm_list->push_back(cond_exp->stm);
+
+    stm_list->push_back(new tree::LabelStm(L_true));
+    if (node->stm) {
+        current_loop_start_label = L_while;
+        current_loop_end_label = L_end;
+        node->stm->accept(*this);
+        auto stm = static_cast<tree::Stm*>(visit_tree_result);
+        stm_list->push_back(stm);
     }
-
-    // 7. 条件跳转（条件为真时继续循环，否则退出）
-    tree::Cjump* cjump = new tree::Cjump("!=", cond_exp, new tree::Const(0), 
-                                          body_label->label, loop_end);
-
-    // 8. 循环结束标签
-    stm_list->push_back(new tree::LabelStm(loop_end));
-
-    // 创建语句序列
-    tree::Seq* seq = new tree::Seq(stm_list);
-    visit_tree_result = seq;
-
-    // 恢复之前的循环标签
-    current_loop_start_label = old_start;
-    current_loop_end_label = old_end;
+    stm_list->push_back(new tree::Jump(L_while));
+    stm_list->push_back(new tree::LabelStm(L_end));
+    
+    visit_tree_result = new tree::Seq(stm_list);
 }
 
 
