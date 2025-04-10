@@ -1214,11 +1214,13 @@ void ASTToTreeVisitor::visit(fdmj::IdExp* node) {
 
     if (kind == AST_Semant::Kind::ClassName) {
         // 若是类名，在IR中通常不直接表示
+        visit_tree_result = nullptr;
         return;
     }
     else if (kind == AST_Semant::Kind::MethodName) {
-        // 如果是方法名
-        // TODO
+        // 若是方法名
+        visit_tree_result = nullptr;
+        return;
     }
     else if (kind == AST_Semant::Kind::Value) {
         // 如果是变量名
