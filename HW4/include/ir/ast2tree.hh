@@ -85,6 +85,11 @@ public:
      Class_table* class_table = nullptr;               // class table
      Method_var_table* method_var_table = nullptr;     // method var table
 
+     std::vector<tree::FuncDecl*>* func_decl_list = nullptr; // 函数声明列表
+
+     string current_class_name;     // 当前类名
+     string current_method_name;    // 当前方法名
+
      tree::Label* current_loop_start_label = nullptr;  // 当前循环开始标签
      tree::Label* current_loop_end_label = nullptr;    // 当前循环结束标签
 
