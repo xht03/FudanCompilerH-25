@@ -18,21 +18,189 @@ using namespace std;
 //using namespace tree;
 
 
+Class_table* generate_class_table(AST_Semant_Map* semant_map) {
+    // 创建类表对象
+    Class_table* class_table = new Class_table();
+
+    // 获取名称映射表
+    Name_Maps* name_maps = semant_map->getNameMaps();
+    if (name_maps == nullptr) {
+        cerr << "Error: Name_Maps is null in generate_class_table." << endl;
+        return class_table;
+    }
+
+    // 获取所有类名
+    set<string>* class_list = name_maps->get_class_list();
+    if (class_list == nullptr) {
+        cerr << "Error: Class list is null in generate_class_table." << endl;
+        return class_table;
+    }
+
+    // 变量和方法的初始偏移量
+    int var_offset = 0;
+    int method_offset = 0;
+
+    // 遍历所有类
+    for (const string& class_name : *class_list) {
+        // 获取类的所有变量
+        set<string>* var_list = name_maps->get_class_var_list(class_name);
+        if (var_list != nullptr) {
+            for (const string& var_name : *var_list) {
+                // 如果变量已经在表中，跳过
+                if (class_table->var_pos_map.find(class_name + "^" + var_name) != class_table->var_pos_map.end()) {
+                    continue;
+                }
+                
+                // 获取变量声明
+                fdmj::VarDecl* var_decl = name_maps->get_class_var(class_name, var_name);
+                if (var_decl != nullptr) {
+                    // 记录变量偏移量
+                    class_table->var_pos_map[var_name] = var_offset;
+                    
+                    // 根据类型增加偏移量
+                    if (var_decl->type->typeKind == fdmj::TypeKind::INT) {
+                        var_offset += Compiler_Config::get("int_length");
+                        // 整数类型也是4字节
+                    } else if (var_decl->type->typeKind == fdmj::TypeKind::ARRAY) {
+                        // 数组类型也是指针类型，大小为4字节
+                        var_offset += Compiler_Config::get("address_length");
+                    } else if (var_decl->type->typeKind == fdmj::TypeKind::CLASS) {
+                        // 对象类型也是指针类型，大小为4字节
+                        var_offset += Compiler_Config::get("address_length");
+                    } else {
+                        cerr << "Error: Unknown variable type in class " << class_name << " for variable " << var_name << endl;
+                    }
+                }
+            }
+        }
+        
+        // 获取类的所有方法
+        set<string>* method_list = name_maps->get_method_list(class_name);
+        if (method_list != nullptr) {
+            for (const string& method_name : *method_list) {
+                // 如果方法已经在表中，跳过
+                if (class_table->method_pos_map.find(class_name + "^" + method_name) != class_table->method_pos_map.end()) {
+                    continue;
+                }
+                
+                // 记录方法偏移量
+                class_table->method_pos_map[method_name] = method_offset;
+                
+                // 每个方法在方法表中占一个位置
+                method_offset++;
+            }
+        }
+    }
+
+    return class_table;
+}
+
+
+Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm) {
+    // 创建新的方法变量表
+    Method_var_table* method_var_table = new Method_var_table();
+
+    // 添加 this 指针 (对象引用)
+    tree::Temp* this_temp = tm->newtemp();
+    method_var_table->var_temp_map->insert({"this", this_temp});
+    method_var_table->var_type_map->insert({"this", tree::Type::PTR});
+
+    // 确定方法返回类型
+    tree::Type return_type;
+    vector<string>* formal_list = nm->get_method_formal_list(class_name, method_name);
+    if (formal_list != nullptr && !formal_list->empty()) {
+        // 获取方法的返回类型 (返回类型存储在形参列表的最后一个位置)
+        string return_formal_name = formal_list->back();
+        fdmj::Formal* return_formal = nm->get_method_formal(class_name, method_name, return_formal_name);
+        
+        if (return_formal != nullptr) {
+            if (return_formal->type->typeKind == TypeKind::INT) {
+                return_type = tree::Type::INT;
+            } else {
+                // 对于类和数组类型，都是指针
+                return_type = tree::Type::PTR;
+            }
+        }
+    }
+
+    // 添加返回值作为特殊变量
+    string return_name = "_^return^_" + method_name;
+    tree::Temp* return_temp = tm->newtemp();
+    method_var_table->var_temp_map->insert({return_name, return_temp});
+    method_var_table->var_type_map->insert({return_name, return_type});
+    
+    // 处理局部变量
+    set<string>* var_list = nm->get_method_var_list(class_name, method_name);
+    if (var_list != nullptr) {
+        for (const string& var_name : *var_list) {
+            // 获取变量声明
+            fdmj::VarDecl* var_decl = nm->get_method_var(class_name, method_name, var_name);
+            if (var_decl != nullptr) {
+                tree::Type var_type;
+                // 确定变量类型
+                if (var_decl->type->typeKind == TypeKind::INT) {
+                    var_type = tree::Type::INT;
+                } else {
+                    var_type = tree::Type::PTR;  // 类和数组都是指针类型
+                }
+                
+                // 为局部变量创建临时变量
+                tree::Temp* var_temp = tm->newtemp();
+                method_var_table->var_temp_map->insert({var_decl->id->id, var_temp});
+                method_var_table->var_type_map->insert({var_decl->id->id, var_type});
+            }
+        }
+    }
+
+    // 处理方法形参
+    if (formal_list != nullptr) {
+        for (const string& formal_name : *formal_list) {
+            fdmj::Formal* formal = nm->get_method_formal(class_name, method_name, formal_name);
+            if (formal != nullptr) {
+                tree::Type var_type;
+                // 确定形参类型
+                if (formal->type->typeKind == TypeKind::INT) {
+                    var_type = tree::Type::INT;
+                } else {
+                    var_type = tree::Type::PTR;  // 类和数组都是指针类型
+                }
+                
+                // 为形参创建临时变量
+                tree::Temp* param_temp = tm->newtemp();
+                method_var_table->var_temp_map->insert({formal->id->id, param_temp});
+                method_var_table->var_type_map->insert({formal->id->id, var_type});
+            }
+        }
+    }
+
+    return method_var_table;
+}
+
+
 // you need to code this function!
 tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map) {
+
     ASTToTreeVisitor* visitor = new ASTToTreeVisitor();
+    visitor->compiler_config = new Compiler_Config();
+    visitor->semant_map = semant_map;
+    
+
     prog->accept(*visitor);
     tree::Tree* result = visitor->getTree();
     delete visitor;
     return dynamic_cast<tree::Program*>(result);
 }
 
-// 地址计算 需要参考 config.hh
-
 
 void ASTToTreeVisitor::visit(fdmj::Program* node) {
     // 初始化函数声明列表
     func_decl_list = new std::vector<tree::FuncDecl*>();
+
+    // 初始化临时变量映射表
+    temp_map = new tree::Temp_map();
+
+    // 初始化类表
+    class_table = generate_class_table(semant_map);
 
     // 访问主方法，生成主函数的 FuncDecl
     if (node->main != nullptr) {
