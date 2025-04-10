@@ -89,16 +89,8 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node) {
     // 主方法的参数列表 (无参数)
     std::vector<tree::Temp*>* args = new std::vector<tree::Temp*>();
 
-    // 主方法返回类型为INT
-    tree::Type return_type = tree::Type::INT;
-    tree::Temp* return_temp = temp_map->newtemp();
-    string return_name = "_^return^_" + current_method_name;
-
-    // 添加返回值到方法变量表
-    method_var_table->var_temp_map->insert({return_name, return_temp});
-    method_var_table->var_type_map->insert({return_name, return_type});
-
     // 局部变量声明
+    std::vector<tree::Stm*>* init_stm_list = new std::vector<tree::Stm*>();
     if (node->vdl != nullptr) {
         for (auto& var_decl : *(node->vdl)) {
             // 确定变量类型
@@ -116,6 +108,12 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node) {
             
             // 访问变量声明，处理初始化
             var_decl->accept(*this);
+            tree::Stm* init_stm = dynamic_cast<tree::Stm*>(visit_tree_result);
+            if (init_stm != nullptr) {
+                init_stm_list->push_back(init_stm);
+            } else {
+                cerr << "Warning: Variable " << var_decl->id->id << " initialization is not a valid statement." << endl;
+            }
         }
     }
 
@@ -123,9 +121,12 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node) {
     std::vector<tree::Block*>* blocks = new std::vector<tree::Block*>();
     tree::Label* entry_label = temp_map->newlabel();
     std::vector<tree::Label*>* exit_labels = new std::vector<tree::Label*>();
-
+    
     // 处理语句列表
     std::vector<tree::Stm*>* stm_list = new std::vector<tree::Stm*>();
+    stm_list->push_back(new tree::LabelStm(entry_label));                               // 入口标签
+    stm_list->insert(stm_list->end(), init_stm_list->begin(), init_stm_list->end());    // 添加初始化语句
+    
     if (node->sl != nullptr) {
         for (auto& stm : *(node->sl)) {
             stm->accept(*this);
@@ -137,11 +138,21 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node) {
             }
         }
     }
-
+    
     // 创建入口块
     tree::Block* entry_block = new tree::Block(entry_label, exit_labels, stm_list);
     blocks->push_back(entry_block);
-
+    
+    
+    // 主方法返回类型为INT
+    tree::Type return_type = tree::Type::INT;
+    tree::Temp* return_temp = temp_map->newtemp();
+    string return_name = "_^return^_" + current_method_name;
+    
+    // 添加返回值到方法变量表
+    method_var_table->var_temp_map->insert({return_name, return_temp});
+    method_var_table->var_type_map->insert({return_name, return_type});
+    
     // 记录临时变量和标签的最大编号
     int last_temp_num = temp_map->next_temp - 1;
     int last_label_num = temp_map->next_label - 1;
@@ -902,8 +913,6 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node) {
     }
 
 }
-
-
 
 
 void ASTToTreeVisitor::visit(fdmj::ArrayExp* node) {

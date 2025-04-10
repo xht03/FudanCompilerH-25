@@ -2,6 +2,8 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <filesystem>
+#include <unistd.h>
 #include "config.hh"
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
@@ -19,19 +21,28 @@ using namespace tree;
 using namespace tinyxml2;
 
 int main(int argc, const char *argv[]) {
-    string file;
+    // string file;
 
-    const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
+    // const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
 
-    if ((!debug && argc != 2) || (debug && argc != 3)) {
-        cerr << "Usage: " << argv[0] << " [--debug] filename" << endl;
-        return EXIT_FAILURE;
-    }
-    file = argv[argc - 1];
+    // if ((!debug && argc != 2) || (debug && argc != 3)) {
+    //     cerr << "Usage: " << argv[0] << " [--debug] filename" << endl;
+    //     return EXIT_FAILURE;
+    // }
+    // file = argv[argc - 1];
+
+     // 切换到test目录
+     filesystem::path filePath(__FILE__);
+     filesystem::path directory = filePath.parent_path();
+     chdir(directory.c_str());
+     chdir("../../test/output_example");
+     
+     string file;
+     file = "hw4test02";
 
     // boilerplate output filenames (used throughout the compiler pipeline)
     string file_ast = file + ".2-semant.ast"; // ast in xml
-    string file_irp = file + ".3.irp";
+    string file_irp = file + ".4.irp";
 
     cout << "------Reading AST from : " << file_ast << "------------" << endl;
     AST_Semant_Map *semant_map = new AST_Semant_Map();

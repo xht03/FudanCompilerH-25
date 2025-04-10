@@ -75,9 +75,9 @@ public:
 
 class ASTToTreeVisitor : public fdmj::AST_Visitor {
 public:
-     tree::Tree *visit_tree_result = nullptr;
+     tree::Tree *visit_tree_result = nullptr;          // 访问树的结果
+     Tr_Exp* visit_exp_result = nullptr;               // 访问表达式的结果
 
-     //** Here add some "visitor-level members" */
      Compiler_Config* compiler_config = nullptr;       // 编译器配置
      AST_Semant_Map* semant_map = nullptr;             // 语义映射表
      Temp_map* temp_map = nullptr;                     // 临时变量(虚拟寄存器)映射表
