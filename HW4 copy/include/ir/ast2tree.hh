@@ -78,24 +78,23 @@ public:
 
 class ASTToTreeVisitor : public fdmj::AST_Visitor {
 public:
-     tree::Tree *visit_tree_result = nullptr;          // 访问树的结果
-     Tr_Exp* visit_exp_result = nullptr;               // 访问表达式的结果
-
-     Compiler_Config* compiler_config = nullptr;       // 编译器配置
-     AST_Semant_Map* semant_map = nullptr;             // 语义映射表
+     AST_Semant_Map* semant_map = nullptr;      // 语义映射表
+     tree::Program* tree_root = nullptr; // 根节点
      Temp_map* temp_map = nullptr;                     // 临时变量(虚拟寄存器)映射表
-
      Class_table* class_table = nullptr;               // class table
-     Method_var_table* method_var_table = nullptr;     // method var table
-
-     std::vector<tree::FuncDecl*>* func_decl_list = nullptr; // 函数声明列表
 
      string current_class_name;     // 当前类名
      string current_method_name;    // 当前方法名
 
+     Method_var_table* method_var_table = nullptr;     // method var table
+
+     vector<tree::Tree*> visit_node;            // 访问树的结果
+     Tr_Exp* visit_exp = nullptr;               // 访问表达式的结果
+
      tree::Label* current_loop_start_label = nullptr;  // 当前循环开始标签
      tree::Label* current_loop_end_label = nullptr;    // 当前循环结束标签
 
+     tree::TempExp* this_temp = nullptr; // this指针的临时变量
 
      ASTToTreeVisitor(AST_Semant_Map* ast_info): semant_map(ast_info)
      { 
@@ -104,7 +103,7 @@ public:
      
      ~ASTToTreeVisitor() { }
 
-     tree::Tree* getTree() { return visit_tree_result; } //return the tree from a single visit (program returns a single tree)
+     tree::Tree* getTree() { return tree_root; } //return the tree from a single visit (program returns a single tree)
      /*
      T_tree* getTree() { return visit_result_node; }
      Temp_map* getTempMap() { return visitor_temp_map; }
