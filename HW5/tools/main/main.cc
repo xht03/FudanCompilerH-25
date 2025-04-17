@@ -30,7 +30,7 @@ XMLDocument* x;
 
 int main(int argc, const char *argv[]) {
 
-    // 切换到test目录
+    // 切换到 test 目录
     filesystem::path filePath(__FILE__);
     filesystem::path directory = filePath.parent_path();
     chdir(directory.c_str());
@@ -54,7 +54,7 @@ int main(int argc, const char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // cout << "将AST进行语义分析并保存: " << file_ast_semant << endl;
+    
     AST_Semant_Map* semant_map = semant_analyze(root);
     // semant_map->getNameMaps()->print();
     x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
@@ -64,7 +64,7 @@ int main(int argc, const char *argv[]) {
     }
     x->SaveFile(file_ast_semant.c_str());
 
-    // cout << "将AST转换为IR并保存: " << file_irp << endl;
+
     tree::Program* ir = ast2tree(root, semant_map);
     x = tree2xml(ir);
     x->SaveFile(file_irp.c_str());
