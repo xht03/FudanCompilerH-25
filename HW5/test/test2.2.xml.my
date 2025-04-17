@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Program>
+    <MainMethod>
+        <VarDeclList>
+            <VarDecl>
+                <Type typeKind="ARRAY">
+                    <Arity val="10"/>
+                </Type>
+                <IdExp id="a"/>
+            </VarDecl>
+            <VarDecl>
+                <Type typeKind="ARRAY">
+                    <Arity val="10"/>
+                </Type>
+                <IdExp id="b"/>
+            </VarDecl>
+        </VarDeclList>
+        <StmList>
+            <Assign>
+                <ArrayExp>
+                    <IdExp id="a"/>
+                    <IntExp val="0"/>
+                </ArrayExp>
+                <IntExp val="1"/>
+            </Assign>
+            <Assign>
+                <ArrayExp>
+                    <IdExp id="b"/>
+                    <IntExp val="0"/>
+                </ArrayExp>
+                <ArrayExp>
+                    <IdExp id="a"/>
+                    <BinaryOp>
+                        <IntExp val="1"/>
+                        <OpExp op="&lt;"/>
+                        <IntExp val="2"/>
+                    </BinaryOp>
+                </ArrayExp>
+            </Assign>
+            <If>
+                <BinaryOp>
+                    <ArrayExp>
+                        <IdExp id="a"/>
+                        <IntExp val="0"/>
+                    </ArrayExp>
+                    <OpExp op="=="/>
+                    <IntExp val="1"/>
+                </BinaryOp>
+                <Assign>
+                    <ArrayExp>
+                        <IdExp id="b"/>
+                        <IntExp val="9"/>
+                    </ArrayExp>
+                    <IntExp val="1"/>
+                </Assign>
+            </If>
+            <Return>
+                <BinaryOp>
+                    <ArrayExp>
+                        <IdExp id="a"/>
+                        <IntExp val="1"/>
+                    </ArrayExp>
+                    <OpExp op="+"/>
+                    <ArrayExp>
+                        <IdExp id="b"/>
+                        <IntExp val="1"/>
+                    </ArrayExp>
+                </BinaryOp>
+            </Return>
+        </StmList>
+    </MainMethod>
+    <ClassDeclList/>
+</Program>

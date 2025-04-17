@@ -1,0 +1,27 @@
+public int main() {
+   int[4] a;
+   int n;
+   
+   n=getarray(a);
+
+   a=-a
+   
+   a=({
+      size=mem(a);
+      t=malloc((size+1)*4);
+      t.size=size;
+
+      i=4;
+      end=(size+1)*4;
+      while(i<end) {
+         *(t+i)=0-*(a+i);
+         i=i+4;
+      }
+   } t)
+
+   putarray(4, a);
+
+   if 0 >= size ? exit(-1) : i=0
+   *(a+(i+1)*4)
+   return a[0];
+}

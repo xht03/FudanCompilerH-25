@@ -270,6 +270,7 @@ void Tree2XML::visit(Mem* node) {
     cout << "Visiting Memory" << endl;
 #endif
     XMLElement* element = doc->NewElement("Memory");
+    element->SetAttribute("type", node->type == Type::INT ? "INT" : "PTR");
     node->mem->accept(*this);
     if (visit_result != nullptr) element->InsertEndChild(visit_result);
     visit_result = element;

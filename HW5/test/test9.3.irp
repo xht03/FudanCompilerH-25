@@ -14,16 +14,7 @@
                         </ExtCall>
                     </Move>
                     <Move>
-                        <Memory>
-                            <BinOp op="+" type="PTR">
-                                <Temp type="PTR" temp="100"/>
-                                <Const value="12"/>
-                            </BinOp>
-                        </Memory>
-                        <Name name="c2^m2"/>
-                    </Move>
-                    <Move>
-                        <Memory>
+                        <Memory type="PTR">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
                                 <Const value="8"/>
@@ -32,7 +23,16 @@
                         <Name name="c1^m1"/>
                     </Move>
                     <Move>
-                        <Memory>
+                        <Memory type="PTR">
+                            <BinOp op="+" type="PTR">
+                                <Temp type="PTR" temp="100"/>
+                                <Const value="12"/>
+                            </BinOp>
+                        </Memory>
+                        <Name name="c2^m2"/>
+                    </Move>
+                    <Move>
+                        <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
                                 <Const value="4"/>
@@ -42,7 +42,7 @@
                     </Move>
                     <Return>
                         <Call id="m2" type="INT">
-                            <Memory>
+                            <Memory type="PTR">
                                 <BinOp op="+" type="PTR">
                                     <Temp type="PTR" temp="100"/>
                                     <Const value="12"/>
@@ -64,7 +64,7 @@
                 <Sequence>
                     <Label label="100"/>
                     <Move>
-                        <Memory>
+                        <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
                                 <Const value="0"/>
@@ -86,10 +86,10 @@
                     <Label label="100"/>
                     <Return>
                         <BinOp op="+" type="INT">
-                            <Memory>
+                            <Memory type="INT">
                                 <BinOp op="+" type="PTR">
                                     <Call id="m1" type="PTR">
-                                        <Memory>
+                                        <Memory type="PTR">
                                             <BinOp op="+" type="PTR">
                                                 <Temp type="PTR" temp="100"/>
                                                 <Const value="8"/>
@@ -103,7 +103,7 @@
                                     <Const value="0"/>
                                 </BinOp>
                             </Memory>
-                            <Memory>
+                            <Memory type="INT">
                                 <BinOp op="+" type="PTR">
                                     <Temp type="PTR" temp="100"/>
                                     <Const value="4"/>

@@ -1,6 +1,6 @@
 public int main() {
-   class D d;
    class C c;
+   class D d;
    c = d;
    putint(c.m1()[0]);
    return(1);

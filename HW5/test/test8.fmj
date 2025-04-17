@@ -2,9 +2,9 @@ public int main() {
    int[] a;
    int[5] b;
    int[] c = {1,2,3,4,5};
-   int l;
-   int i = 0;
    class D d; 
+   int i = 0;
+   int l;
    
    l=getarray(a);
    while (i<l) {

@@ -14,7 +14,7 @@
                         </ExtCall>
                     </Move>
                     <Move>
-                        <Memory>
+                        <Memory type="PTR">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
                                 <Const value="4"/>
@@ -24,7 +24,7 @@
                     </Move>
                     <ExpressionStatement>
                         <Call id="m" type="INT">
-                            <Memory>
+                            <Memory type="PTR">
                                 <BinOp op="+" type="PTR">
                                     <Temp type="PTR" temp="100"/>
                                     <Const value="4"/>

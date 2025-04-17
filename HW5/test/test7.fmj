@@ -1,6 +1,6 @@
 public int main() {
-   int[] w;
    class D d;
+   int[] w;
    return(1);
 }
 
@@ -13,3 +13,4 @@ public class C {
 public class D extends C {
    int[] z = {1,2,3};
 }
+
