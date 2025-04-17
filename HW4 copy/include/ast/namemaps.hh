@@ -31,6 +31,7 @@ public:
     bool detected_loop(map<string, string> classHierachy);
     bool add_class_hiearchy(string class_name, string parent_name); //return false if loop found
     vector<string>* get_ancestors(string class_name);
+    string get_parent(string class_name); //return the parent class name of the class
 
     bool is_method(string class_name, string method_name); 
     bool add_method(string class_name, string method_name);  //return false if already exists
@@ -49,6 +50,7 @@ public:
     bool is_method_formal(string class_name, string method_name, string var_name);
     bool add_method_formal(string class_name, string method_name, string var_name, Formal* f);
     Formal* get_method_formal(string class_name, string method_name, string var_name);
+    Formal* get_method_return_formal(string class_name, string method_name); // get the return param of the method
     bool add_method_formal_list(string class_name, string method_name, vector<string> vl);
     vector<string>* get_method_formal_list(string class_name, string method_name);
 

@@ -73,6 +73,13 @@ vector<string>* Name_Maps::get_ancestors(string class_name) {
     return ancestors;
 }
 
+string Name_Maps::get_parent(string class_name) {
+    if (classHierachy.find(class_name) == classHierachy.end()) {
+        return "";
+    }
+    return classHierachy[class_name];
+}
+
 bool Name_Maps::is_method(string class_name, string method_name) {
     pair<string, string> p(class_name, method_name);
     return methods.find(p) != methods.end();
@@ -177,6 +184,12 @@ Formal* Name_Maps::get_method_formal(string class_name, string method_name, stri
     }
     return methodFormal[tuple<string, string, string>(class_name, method_name, var_name)];
 }
+
+Formal* Name_Maps::get_method_return_formal(string class_name, string method_name) {
+    string return_prefix = "_^return^_";
+    return methodFormal[tuple<string, string, string>(class_name, method_name, return_prefix + method_name)];
+}
+
 
 bool Name_Maps::add_method_formal_list(string class_name, string method_name, vector<string> vl) {
     if (!Name_Maps::is_method(class_name, method_name)) {
