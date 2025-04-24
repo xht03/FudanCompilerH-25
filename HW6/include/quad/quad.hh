@@ -54,13 +54,16 @@ class QuadVisitor {
 
 /*
 Quad is a class that represents a quadruple in the intermediate representation.
-It contains the following members:
-- kind: the kind of the quadruple (e.g., MOVE, LOAD, STORE, etc.) 
-- node: the tree node associated with the quadruple
-- def: a set of temporary variables that are defined by this quadruple
-- use: a set of temporary variables that are used by this quadruple
-//These quads are simplified Tree nodes/substructures
-//Note: term is either a TempExp, Const or Name (string, from NAME)
+
+包含以下成员：
+- kind: Quad 的类型 (如 MOVE、LOAD、STORE 等)
+- node: 与该 Quad 关联的树节点
+- def: 由该 Quad 定义的临时变量集合
+- use: 该 Quad 使用的临时变量集合
+
+// 这些 Quad 是简化的树节点/子结构
+// term 可以是临时变量 (TempExp)、常量 (Const)或名称 (字符串，来自 NAME)
+
 Move:  temp <- term
 Load:  temp <- mem(term)
 Store: mem(term) <- term
@@ -75,6 +78,7 @@ CJump: cjump relop term, term, label, label
 Phi:  temp <- list of {temp, label} //same as the Phi in the tree
 */
 
+// Quad 的类型
 enum class QuadKind { 
     PROGRAM, FUNCDECL, BLOCK,
     MOVE, LOAD, STORE, MOVE_BINOP, 
@@ -87,7 +91,8 @@ enum class QuadTermKind {
     TEMP, CONST, MAME
 };
 
-//Terminals of the Quad: temp, const, name(whichi is from a string label)
+// 表示终结符的类
+// QuadTerm 可以表示三种类型的终结：temp, const, name (whichi is from a string label)
 class QuadTerm {
   public:
     QuadTermKind kind;
@@ -118,7 +123,7 @@ class QuadTerm {
 class Quad {
   public:
     QuadKind kind;
-    tree::Tree *node; //just in case we nedd to access the original tree node 
+    tree::Tree *node; // 以防需要访问 IR 源节点
     virtual void print(string &output_str, int indent, bool print_def_use) = 0;
     virtual void accept(QuadVisitor &v) = 0;
     Quad(QuadKind k, tree::Tree *node) : kind(k), node(node) {}
@@ -126,7 +131,8 @@ class Quad {
 
 class QuadProgram : public Quad {
   public:
-    vector<QuadFuncDecl*> *quadFuncDeclList;
+    vector<QuadFuncDecl*> *quadFuncDeclList;  // 所有函数的声明
+
     QuadProgram(tree::Program *node, vector<QuadFuncDecl*> *quadFuncDeclList) 
         : Quad(QuadKind::PROGRAM, node), quadFuncDeclList(quadFuncDeclList) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -135,11 +141,12 @@ class QuadProgram : public Quad {
 
 class QuadFuncDecl : public Quad {
   public:
-    vector<QuadBlock*> *quadblocklist;
-    string funcname;
-    vector<Temp*> *params;
-    int last_label_num;
-    int last_temp_num;
+    vector<QuadBlock*> *quadblocklist;    // 所有块
+    string funcname;                      // 函数名称
+    vector<Temp*> *params;                // 参数列表
+    int last_label_num;                   // 函数中使用的最后一个标签号
+    int last_temp_num;                    // 函数中使用的最后一个临时变量号
+
     QuadFuncDecl(Tree *node, string funcname, vector<Temp*> *params, vector<QuadBlock*> *quadblocklist, int lln, int ltn)
         : Quad(QuadKind::FUNCDECL, node), params(params), quadblocklist(quadblocklist), funcname(funcname), last_label_num(lln), last_temp_num(ltn) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -148,9 +155,10 @@ class QuadFuncDecl : public Quad {
 
 class QuadBlock : public Quad {
   public:
-    Label *entry_label;
-    vector<tree::Label*> *exit_labels;
-    vector<QuadStm*> *quadlist;
+    Label *entry_label;                   // 入口标签
+    vector<tree::Label*> *exit_labels;    // 退出标签
+    vector<QuadStm*> *quadlist;           // Quad 语句列表
+
     QuadBlock(Tree *node, vector<QuadStm*> *quadlist, Label *entry_label, vector<tree::Label*> *exit_labels)
         : Quad(QuadKind::BLOCK, node), entry_label(entry_label), exit_labels(exit_labels), quadlist(quadlist) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -159,9 +167,10 @@ class QuadBlock : public Quad {
 
 class QuadStm : public Quad {
   public:
-    QuadKind kind;
-    set<Temp*> *def;
-    set<Temp*> *use;
+    QuadKind kind;      // 语句类型
+    set<Temp*> *def;    // 该指令定义的临时变量集合
+    set<Temp*> *use;    // 该指令使用的临时变量集合
+    
     QuadStm(QuadKind k, Tree *node, set<Temp*> *def, set<Temp*> *use) 
         : Quad(k, node), kind(k), def(def), use(use) {}
     virtual void accept(QuadVisitor &v) = 0;
@@ -170,8 +179,9 @@ class QuadStm : public Quad {
 
 class QuadMove : public QuadStm{
   public:
-    TempExp *dst;
-    QuadTerm *src;
+    TempExp *dst;     // 目标临时变量
+    QuadTerm *src;    // 源终结符
+
     QuadMove(Tree *node, TempExp *dst, QuadTerm *src, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::MOVE, node, def, use), dst(dst), src(src) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -190,8 +200,9 @@ class QuadLoad : public QuadStm{
 
 class QuadStore : public QuadStm{
   public:
-    QuadTerm *src;
-    QuadTerm *dst; //in the form: mem(dst)
+    QuadTerm *src;    // 要存储的值
+    QuadTerm *dst;    // 目标内存地址：mem(dst) 形式
+
     QuadStore(Tree *node, QuadTerm *src, QuadTerm *dst, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::STORE, node, def, use), src(src), dst(dst) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -204,6 +215,7 @@ class QuadMoveBinop : public QuadStm{
     QuadTerm *left;
     QuadTerm *right;
     string binop;
+
     QuadMoveBinop(Tree *node, TempExp *dst, QuadTerm *left, string binop, QuadTerm *right, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::MOVE_BINOP, node, def, use), dst(dst), left(left), binop(binop), right(right) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -213,10 +225,11 @@ class QuadMoveBinop : public QuadStm{
 //Call is always a load a call result to a temp
 class QuadCall : public QuadStm{
   public:
-    string name;
-    QuadTerm *obj_term;
-    vector<QuadTerm*> *args;
-    TempExp *result_temp;
+    string name;                // 被调用的函数名
+    QuadTerm *obj_term;         // 对象实例
+    vector<QuadTerm*> *args;    // 参数列表
+    TempExp *result_temp;       // 返回值的临时变量
+
     QuadCall(Tree *node, TempExp *result_temp, string name, QuadTerm *obj_term, vector<QuadTerm*> *args, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::CALL, node, def, use), result_temp(result_temp), name(name), obj_term(obj_term), args(args) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -235,9 +248,10 @@ class QuadMoveCall : public QuadStm{
 
 class QuadExtCall : public QuadStm{
   public:
-    string extfun;
-    vector<QuadTerm*> *args;
-    TempExp *result_temp;
+    string extfun;              // 外部函数名
+    vector<QuadTerm*> *args;    // 参数列表
+    TempExp *result_temp;       // 返回值的临时变量
+
     QuadExtCall(Tree *node, TempExp *result_temp, string extfun, vector<QuadTerm*> *args, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::EXTCALL, node, def, use), extfun(extfun), result_temp(result_temp), args(args) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -274,10 +288,11 @@ class QuadJump : public QuadStm{
 
 class QuadCJump : public QuadStm{
   public:
-    string relop;
-    QuadTerm *left;
-    QuadTerm *right; 
-    Label *t, *f;
+    string relop;         // 关系运算符
+    QuadTerm *left;       // 左操作数
+    QuadTerm *right;      // 右操作数
+    Label *t, *f;         // 真分支和假分支标签
+
     QuadCJump(Tree *node, string relop, QuadTerm *left, QuadTerm *right, Label *t, Label *f, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::CJUMP, node, def, use), relop(relop), left(left), right(right), t(t), f(f) {}
     void accept(QuadVisitor &v) {v.visit(this);}
@@ -286,8 +301,9 @@ class QuadCJump : public QuadStm{
 
 class QuadPhi : public QuadStm {
   public:
-    TempExp *temp;
-    vector<pair<Temp*, Label*>> *args;
+    TempExp *temp;                            // 合并后的结果
+    vector<pair<Temp*, Label*>> *args;        // (值, 标签) 列表
+    
     QuadPhi(Tree *node, TempExp *temp, vector<pair<Temp*, Label*>> *args, set<Temp*> *def, set<Temp*> *use) 
         : QuadStm(QuadKind::PHI, node, def, use), temp(temp), args(args) {}
     void accept(QuadVisitor &v) {v.visit(this);};

@@ -9,11 +9,10 @@ using namespace quad;
 
 class Tree2Quad : public Visitor {
 public:
-    QuadProgram* quadprog;
-    vector<QuadStm*> *visit_result;
-    QuadTerm *output_term;
-    Temp_map *temp_map; //used to generate new temps, 
-                        //reset at each FuncDecl (taking in the last temp & label numbers used)
+    QuadProgram* quadprog;              // 存储转换后的 Quad 程序
+    vector<QuadStm*> *visit_result;     // 访问结果为 QuadStm 列表
+    QuadTerm *output_term;              // 
+    Temp_map *temp_map;                 // 用于生成新的临时变量 (在每个函数定义时重置) (taking in the last temp & label numbers used)
 
     // You may add other "visitor global variables" here
 

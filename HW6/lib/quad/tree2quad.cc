@@ -8,6 +8,7 @@
 #include "treep.hh"
 #include "quad.hh"
 #include "tree2quad.hh"
+#include "canon.hh"
 
 using namespace std;
 using namespace tree;
@@ -15,257 +16,347 @@ using namespace quad;
 
 
 /*
-We use an instruction selection method (pattern matching) to convert the IR tree to Quad.
-The Quad is a simplified tree node/substructure, each Quad is a tree pattern:
+我们使用指令选择方法 (模式匹配) 将 IR 树转换为 Quad
+Quad 是一种简化的树节点/子结构，每个四元式代表一种树模式：
 Move:  temp <- temp
 Load:  temp <- mem(temp)
 Store: mem(temp) <- temp
 MoveBinop: temp <- temp op temp
-Call:  ExpStm(call) //ignore the result
-ExtCall: ExpStm(extcall) //ignore the result
+Call:  ExpStm(call)         //忽略结果
+ExtCall: ExpStm(extcall)    //忽略结果
 MoveCall: temp <- call
 MoveExtCall: temp <- extcall
 Label: label
 Jump: jump label
 CJump: cjump relop temp, temp, label, label
-Phi:  temp <- list of {temp, label} //same as the Phi in the tree
+Phi:  temp <- list of {temp, label}     // 与树中的 Phi 节点相同
 */
 
+
 QuadProgram* tree2quad(Program* prog) {
-#ifdef DEBUG
-    cout << "in Tree2Quad::Converting IR to Quad" << endl;
-#endif
-    //You need to write the code. Now it's a fake one
-    Temp_map* temp_map = new Temp_map();
-    Label *l = temp_map->newlabel();
-    QuadReturn* quad_ret = new QuadReturn(new tree::Const(0), new QuadTerm(new Const(0)), new set<Temp*>(), new set<Temp*>());
-    QuadBlock* quad_block = new QuadBlock(nullptr, new vector<QuadStm*>(1, quad_ret), l, new vector<Label*>());
-    QuadFuncDecl* quad_func_decl = new QuadFuncDecl(nullptr, string("main"), new vector<Temp*>(), new vector<QuadBlock*>(1, quad_block), 100, 100);
-    return new QuadProgram(prog, new vector<QuadFuncDecl*>(1, quad_func_decl));
+    // 正则化
+    Program* canonProg = canon(prog);
+
+    Tree2Quad visitor;
+    visitor.quadprog = nullptr;
+    visitor.visit_result = new vector<QuadStm*>();
+    visitor.output_term = nullptr;
+    visitor.temp_map = new Temp_map();
+
+    // 将 IR 转换为 Quad
+    canonProg->accept(visitor);
+    return visitor.quadprog;
 }
 
-//You need to write all the visit functions below. Now they are all "dummies".
+
+// 程序
 void Tree2Quad::visit(Program* prog) {
 #ifdef DEBUG
     cout << "Converting to Quad: Program" << endl;
 #endif
-    visit_result = nullptr;
-    output_term = nullptr;
-    return; //no need to visit the program
+    
+    // 
+    vector<QuadFuncDecl*> *quadFuncs = new vector<QuadFuncDecl*>();
+
+    if (prog && prog->funcdecllist) {
+        for (auto fd : *(prog->funcdecllist)) {
+            fd->accept(*this);
+            if (!visit_result->empty()) {
+
+                // TODO
+                visit_result->clear();
+            }
+        }
+    }
+
+    quadprog = new QuadProgram(prog, quadFuncs);
+
 }
 
+
+// 函数声明
 void Tree2Quad::visit(FuncDecl* node) {
 #ifdef DEBUG
     cout << "Converting to Quad: FunctionDeclaration" << endl;
 #endif
-    visit_result = nullptr;
-    return; //no need to visit the function declaration
+    
+    // TODO
+
 }
 
+
+// 块
 void Tree2Quad::visit(Block *block) {
 #ifdef DEBUG
     cout << "Converting to Quad: Block" << endl;
 #endif
-    visit_result = nullptr;
-    return; //no need to visit the block
+    
+    // TODO
+
+
 }
 
+
+// 跳转
 void Tree2Quad::visit(Jump* node) {
 #ifdef DEBUG
     cout << "Converting to Quad: Jump" << endl;
 #endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+    
+    // TODO
+
 }
 
+
+// 条件跳转
 void Tree2Quad::visit(tree::Cjump* node) {
 #ifdef DEBUG
     cout << "Converting to Quad: CJump" << endl;
 #endif
-//only one tile pattern matches this CJump
-    if (node == nullptr || node->right == nullptr || node->left == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+    // only one tile pattern matches this CJump
+    // TODO
 }
 
+// 赋值
+// QuadMoveExtCall QuadMoveCall QuadMoveBinop QuadMove QuadLoad QuadStore
 void Tree2Quad::visit(Move* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Move" << endl;
-#endif
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+    visit_result->clear();
+
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+
+    // 若 dst 是临时变量
+    if (node->dst->getTreeKind() == Kind::TEMPEXP) {
+
+        // 若 src 是内存 (QuadLoad)
+        if (node->src->getTreeKind() == Kind::MEM) {
+            
+
+            
+        }
+
+        // 若 src 是函数调用 (QuadMoveCall)
+        else if (node->src->getTreeKind() == Kind::CALL) {
+            
+        }
+
+        // 若 src 是外部函数调用 (QuadMoveExtCall)
+        else if (node->src->getTreeKind() == Kind::EXTCALL) {
+            
+        }
+
+        // 若 src 是二元操作 (QuadMoveBinop)
+        else if (node->src->getTreeKind() == Kind::BINOP) {
+            
+        }
+
+        // 若 src 是临时变量 (QuadMove)
+        else if (node->src->getTreeKind() == Kind::TEMPEXP) {
+
+        }
+        else {
+            
+        }
+    }
+
+    // 若 dst 是内存 (QuadStore)
+    else if (node->dst->getTreeKind() == Kind::MEM) {
+
+    }
+
+    else {
+
+    }
+
+
+    
 }
 
+// 语句序列
 void Tree2Quad::visit(Seq* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Sequence" << endl;
-#endif
-    visit_result = nullptr;
+    visit_result->clear();
+
+    // 语句列表
+    vector<QuadStm*> *stmlist = new vector<QuadStm*>();
+    if (node && node->sl) {
+        for (auto stm : *(node->sl)) {
+            stm->accept(*this);
+            if (!visit_result->empty())
+                stmlist->insert(stmlist->end(), visit_result->begin(), visit_result->end());
+        }
+    }
+
+    visit_result = stmlist;
     output_term = nullptr;
-    return; 
 }
 
+
+// 标签语句
 void Tree2Quad::visit(LabelStm* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Label" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
+    visit_result->clear();
+
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+
+    QuadLabel* label = new QuadLabel(node, node->label, def, use);
+    visit_result->push_back(label);
     output_term = nullptr;
-    return;
 }
 
+
+// 返回语句
 void Tree2Quad::visit(Return* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Return" << endl;
-#endif
-    if (node == nullptr || node->exp == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
+    visit_result->clear();
+
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+
+    // 返回值
+    node->exp->accept(*this);
+    QuadTerm* return_term = output_term;
+    if (return_term->kind == QuadTermKind::TEMP)
+        use->insert(return_term->get_temp()->temp);
+    
+    QuadReturn* ret = new QuadReturn(node, return_term, def, use);
+    visit_result->push_back(ret);
     output_term = nullptr;
-    return;
 }
 
+
+// Phi
 void Tree2Quad::visit(Phi* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Phi" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
+    // TODO
     return;
 }
 
+
+// 表达式语句 (只关心副作用，不关心返回值)
 void Tree2Quad::visit(ExpStm* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: ExpressionStatement" << endl;
-#endif
-    if (node == nullptr || node->exp == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+    visit_result->clear();  // 准备存储新的语句
+    node->exp->accept(*this);
 }
 
+
+// 二元操作表达式
 void Tree2Quad::visit(Binop* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: BinaryOperation" << endl;
-#endif
-    if (node == nullptr || node->left == nullptr || node->right == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr; 
-    output_term = nullptr;
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+    
+    // 左操作数
+    node->left->accept(*this);
+    QuadTerm* left_term = output_term;
+    if (left_term->kind == QuadTermKind::TEMP)
+        use->insert(left_term->get_temp()->temp);
+
+    // 右操作数
+    node->right->accept(*this);
+    QuadTerm* right_term = output_term;
+    if (right_term->kind == QuadTermKind::TEMP)
+        use->insert(right_term->get_temp()->temp);
+
+    // 计算结果
+    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
+    def->insert(result_temp->temp);
+
+    QuadMoveBinop* move_binop = new QuadMoveBinop(node, result_temp, left_term, node->op, right_term, def, use);
+    visit_result->push_back(move_binop);
+    output_term = new QuadTerm(result_temp);
 }
 
-//convert the memory address to a load quad
+
+// 访存
+// convert the memory address to a load quad
 void Tree2Quad::visit(Mem* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Memory" << endl;
-#endif
-    if (node == nullptr || node->mem == nullptr) {
-        cerr << "Error: memory address is missing!" << endl;
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+    
+    // 内存地址
+    node->mem->accept(*this);
+    QuadTerm* addr_term = output_term;
+    if (addr_term->kind == QuadTermKind::TEMP)
+        use->insert(addr_term->get_temp()->temp);
+
+    // 计算结果
+    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
+    def->insert(result_temp->temp);
+
+    QuadLoad* load = new QuadLoad(node, result_temp, addr_term, def, use);
+    visit_result->push_back(load);
+    output_term = new QuadTerm(result_temp);
 }
 
-void Tree2Quad::visit(TempExp* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Temp" << endl;
-#endif
-    if (node == nullptr) {
-        cerr << "Error: Temp is null!" << endl;
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
-}
 
-//the following is useless since IR is canon
+// 临时变量
+void Tree2Quad::visit(TempExp* node) { output_term = new QuadTerm(node); }
+
+// Name (将标签转换为 QuadTerm)
+void Tree2Quad::visit(Name* node) { output_term = new QuadTerm(node); }
+
+// 常量
+void Tree2Quad::visit(Const* node) { output_term = new QuadTerm(node); }
+
+// 正则化之后不会有 Eseq 节点
 void Tree2Quad::visit(Eseq* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: ESeq" << endl;
-#endif
     visit_result = nullptr;
     output_term = nullptr;
     return;
 }
 
-//convert the label to a QuadTerm(name)
-void Tree2Quad::visit(Name* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Name" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
-}
-
-void Tree2Quad::visit(Const* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Const" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
-    }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
-}
-
+// 函数调用
 void Tree2Quad::visit(Call* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Call" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
+    set<Temp*> *def = new set<Temp*>();     // 定义的临时变量集合
+    set<Temp*> *use = new set<Temp*>();     // 使用的临时变量集合
+    
+    // 对象实例
+    node->obj->accept(*this);
+    QuadTerm* obj_term = output_term;
+    use->insert(obj_term->get_temp()->temp);
+
+
+    // 参数列表
+    vector<QuadTerm*> *args = new vector<QuadTerm*>();
+    if (node->args) {
+        for (auto arg : *(node->args)) {
+            arg->accept(*this);
+            args->push_back(output_term);
+            // 如果参数是 temp ，添加到 use 中
+            if (output_term->kind == QuadTermKind::TEMP)
+                use->insert(output_term->get_temp()->temp);
+        }
     }
-    visit_result = nullptr;
-    output_term = nullptr;
+
+    // 返回值
+    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
+    def->insert(result_temp->temp);
+
+    QuadCall* call = new QuadCall(node, result_temp, node->id, obj_term, args, def, use);
+    visit_result->push_back(call);
+    output_term = new QuadTerm(result_temp);
 }
 
-void Tree2Quad::visit(ExtCall* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: ExtCall" << endl;
-#endif
-    if (node == nullptr) {
-        visit_result = nullptr;
-        return;
+
+// 外部函数调用
+void Tree2Quad::visit(ExtCall* node) {    
+    set<Temp*> *def = new set<Temp*>();
+    set<Temp*> *use = new set<Temp*>();
+
+    // 参数列表
+    vector<QuadTerm*> *args = new vector<QuadTerm*>();
+    if (node->args) {
+        for (auto arg : *(node->args)) {
+            arg->accept(*this);
+            args->push_back(output_term);
+            // 如果参数是临时变量，添加到use中
+            if (output_term->kind == QuadTermKind::TEMP)
+                use->insert(output_term->get_temp()->temp);
+        }
     }
-    visit_result = nullptr;
-    output_term = nullptr;
-    return;
+
+    // 返回值
+    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
+    def->insert(result_temp->temp);
+
+    QuadExtCall* extcall = new QuadExtCall(node, result_temp, node->extfun, args, def, use);
+    visit_result->push_back(extcall);
+    output_term = new QuadTerm(result_temp);
 }
