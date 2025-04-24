@@ -36,85 +36,119 @@ Phi:  temp <- list of {temp, label}     // 与树中的 Phi 节点相同
 QuadProgram* tree2quad(Program* prog) {
     // 正则化
     Program* canonProg = canon(prog);
-
+    // visitor 初始化
     Tree2Quad visitor;
-    visitor.quadprog = nullptr;
+    visitor.quad_prog = nullptr;
+    visitor.quad_func = nullptr;
+    visitor.quad_block = nullptr;
     visitor.visit_result = new vector<QuadStm*>();
     visitor.output_term = nullptr;
     visitor.temp_map = new Temp_map();
-
     // 将 IR 转换为 Quad
     canonProg->accept(visitor);
-    return visitor.quadprog;
+    return visitor.quad_prog;
 }
 
 
 // 程序
 void Tree2Quad::visit(Program* prog) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Program" << endl;
-#endif
-    
-    // 
-    vector<QuadFuncDecl*> *quadFuncs = new vector<QuadFuncDecl*>();
-
+    // 所有函数声明
+    vector<QuadFuncDecl*> *qfdl = new vector<QuadFuncDecl*>();
     if (prog && prog->funcdecllist) {
-        for (auto fd : *(prog->funcdecllist)) {
-            fd->accept(*this);
-            if (!visit_result->empty()) {
-
-                // TODO
-                visit_result->clear();
-            }
+        for (auto func : *(prog->funcdecllist)) {
+            func->accept(*this);
+            if (quad_func)
+                qfdl->push_back(quad_func);
         }
     }
 
-    quadprog = new QuadProgram(prog, quadFuncs);
-
+    QuadProgram *quadProgram = new QuadProgram(prog, qfdl);
+    quad_prog = quadProgram;
 }
 
 
 // 函数声明
 void Tree2Quad::visit(FuncDecl* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: FunctionDeclaration" << endl;
-#endif
-    
-    // TODO
+    visit_result->clear();
 
+    // 重置临时变量映射
+    if (temp_map) delete temp_map;
+    temp_map = new Temp_map();
+
+    vector<QuadBlock*> *qbl = new vector<QuadBlock*>();
+    if (node->blocks) {
+        for (auto block : *(node->blocks)) {
+            quad_block = nullptr;
+            block->accept(*this);
+            if (quad_block)
+                qbl->push_back(quad_block);
+        }
+    }
+
+    QuadFuncDecl *qfd = new QuadFuncDecl(node, node->name, node->args, qbl, node->last_label_num, node->last_temp_num);
+    quad_func = qfd;
 }
 
 
 // 块
 void Tree2Quad::visit(Block *block) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Block" << endl;
-#endif
-    
-    // TODO
+    visit_result->clear();
 
+    if (block == nullptr)
+        return;
 
+    vector<QuadStm*> *quadlist = new vector<QuadStm*>();
+
+    if (block->sl) {
+        for (auto stm : *(block->sl)) {
+            stm->accept(*this);
+            if (!visit_result->empty()) {
+                quadlist->insert(quadlist->end(), visit_result->begin(), visit_result->end());
+            }
+        }
+    }
+
+    QuadBlock *quadblock = new QuadBlock(block, quadlist, block->entry_label, block->exit_labels);
+    quad_block = quadblock;
 }
 
 
 // 跳转
 void Tree2Quad::visit(Jump* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: Jump" << endl;
-#endif
-    
-    // TODO
+    visit_result->clear();
 
+    set<Temp*> *def = new set<Temp*>(); // 跳转不会定义新的临时变量
+    set<Temp*> *use = new set<Temp*>();
+
+    QuadJump *jump = new QuadJump(node, node->label, def, use);
+    visit_result->push_back(jump);
+    output_term = nullptr;
 }
 
 
 // 条件跳转
+// only one tile pattern matches this CJump
 void Tree2Quad::visit(tree::Cjump* node) {
-#ifdef DEBUG
-    cout << "Converting to Quad: CJump" << endl;
-#endif
-    // only one tile pattern matches this CJump
-    // TODO
+    visit_result->clear();
+
+    set<Temp*> *def = new set<Temp*>(); // 条件跳转不会定义新的临时变量
+    set<Temp*> *use = new set<Temp*>();
+
+    // 左操作数
+    node->left->accept(*this);
+    QuadTerm *left_term = output_term;
+    if (left_term->kind == QuadTermKind::TEMP)
+        use->insert(left_term->get_temp()->temp);
+
+    // 处理右操作数
+    node->right->accept(*this);
+    QuadTerm *right_term = output_term;
+    if (right_term->kind == QuadTermKind::TEMP)
+        use->insert(right_term->get_temp()->temp);
+
+    QuadCJump *cjump = new QuadCJump(node, node->relop, left_term, right_term, node->t, node->f, def, use);
+    visit_result->push_back(cjump);
+    output_term = nullptr;
 }
 
 // 赋值
@@ -125,51 +159,101 @@ void Tree2Quad::visit(Move* node) {
     set<Temp*> *def = new set<Temp*>();
     set<Temp*> *use = new set<Temp*>();
 
-    // 若 dst 是临时变量
+    /* 若 dst 是临时变量 */
     if (node->dst->getTreeKind() == Kind::TEMPEXP) {
+        TempExp* dst_temp = static_cast<TempExp*>(node->dst);
+        def->insert(dst_temp->temp);
 
-        // 若 src 是内存 (QuadLoad)
+        /* 若 src 是内存 (QuadLoad) */
         if (node->src->getTreeKind() == Kind::MEM) {
-            
-
-            
+            Mem *memNode = static_cast<Mem*>(node->src);
+            memNode->mem->accept(*this);
+            // 内存地址
+            QuadTerm* addr_term = output_term;
+            if (addr_term->kind == QuadTermKind::TEMP)
+                use->insert(addr_term->get_temp()->temp);
+            // 生成 QuadLoad
+            QuadLoad *load = new QuadLoad(node, dst_temp, addr_term, def, use);
+            visit_result->push_back(load);
         }
 
-        // 若 src 是函数调用 (QuadMoveCall)
+        /* 若 src 是函数调用 (QuadMoveCall) */
         else if (node->src->getTreeKind() == Kind::CALL) {
-            
+            Call *callNode = static_cast<Call*>(node->src);
+            callNode->accept(*this);
+            QuadCall *call = static_cast<QuadCall*>(visit_result->back());
+            QuadMoveCall *move_call = new QuadMoveCall(node, dst_temp, call, def, use);
+            visit_result->push_back(move_call);
         }
 
-        // 若 src 是外部函数调用 (QuadMoveExtCall)
+        /* 若 src 是外部函数调用 (QuadMoveExtCall) */
         else if (node->src->getTreeKind() == Kind::EXTCALL) {
-            
+            ExtCall *extcallNode = static_cast<ExtCall*>(node->src);
+            extcallNode->accept(*this);
+            QuadExtCall *extcall = static_cast<QuadExtCall*>(visit_result->back());
+            QuadMoveExtCall *move_extcall = new QuadMoveExtCall(node, dst_temp, extcall, def, use);
+            visit_result->push_back(move_extcall);
         }
 
-        // 若 src 是二元操作 (QuadMoveBinop)
+        /* 若 src 是二元操作 (QuadMoveBinop) */ 
         else if (node->src->getTreeKind() == Kind::BINOP) {
-            
+            Binop *binopNode = static_cast<Binop*>(node->src);
+            // 左操作数
+            binopNode->left->accept(*this);
+            QuadTerm *left_term = output_term;
+            if (left_term->kind == QuadTermKind::TEMP)
+                use->insert(left_term->get_temp()->temp);
+
+            // 右操作数
+            binopNode->right->accept(*this);
+            QuadTerm *right_term = output_term;
+            if (right_term->kind == QuadTermKind::TEMP)
+                use->insert(right_term->get_temp()->temp);
+
+            QuadMoveBinop *move_binop = new QuadMoveBinop(node, dst_temp, left_term, binopNode->op, right_term, def, use);
+            visit_result->push_back(move_binop);
         }
 
         // 若 src 是临时变量 (QuadMove)
         else if (node->src->getTreeKind() == Kind::TEMPEXP) {
+            TempExp *tempNode = static_cast<TempExp*>(node->src);
+            tempNode->accept(*this);
+            QuadTerm *src_term = output_term;
+            if (src_term->kind == QuadTermKind::TEMP)
+                use->insert(src_term->get_temp()->temp);
 
+            QuadMove *move = new QuadMove(node, dst_temp, src_term, def, use);
+            visit_result->push_back(move);
         }
         else {
-            
+            cerr << "Error: Move statement with unknown source type." << endl;
         }
     }
 
     // 若 dst 是内存 (QuadStore)
     else if (node->dst->getTreeKind() == Kind::MEM) {
+        // 目的地址
+        Mem *memNode = static_cast<Mem*>(node->dst);
+        memNode->mem->accept(*this);
+        QuadTerm *addr_term = output_term;
+        if (addr_term->kind == QuadTermKind::TEMP)
+            use->insert(addr_term->get_temp()->temp);
+        
+        // 源操作数
+        node->src->accept(*this);
+        QuadTerm *src_term = output_term;
+        if (src_term->kind == QuadTermKind::TEMP)
+            use->insert(src_term->get_temp()->temp);
 
+        QuadStore *store = new QuadStore(node, src_term, addr_term, def, use);
+        visit_result->push_back(store);
     }
 
     else {
-
+        cerr << "Error: Move statement with unknown destination type." << endl;
     }
 
-
-    
+    output_term = nullptr;
 }
 
 // 语句序列

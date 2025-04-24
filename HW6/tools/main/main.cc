@@ -29,7 +29,7 @@ int main(int argc, const char *argv[]) {
     // boilerplate output filenames (used throughout the compiler pipeline)
     string file_irp = file + ".3.irp";
     string file_irp_canon = file + ".3-canon.irp";
-    string file_quad = file + ".4.quad";
+    string file_quad = file + ".4.quad.my";
 
     cout << "Reading IR (XML) from: " << file_irp << endl;
     tree::Program *ir = xml2tree(file_irp);
@@ -42,24 +42,24 @@ int main(int argc, const char *argv[]) {
     cout << "Writing Canonicalized IR to " << file_irp_canon << endl;
     XMLDocument *doc = tree2xml(ir_canon);
     doc->SaveFile(file_irp_canon.c_str()); 
-    // QuadProgram *qd = tree2quad(ir_canon);
-    // if (qd == nullptr) {
-    //     cerr << "Error converting IR to Quad" << endl;
-    //     return EXIT_FAILURE;
-    // }
-    // cout << "Done converting IR to Quad" << endl;
-    // string temp_str; temp_str.reserve(50000);
-    // qd->print(temp_str, 0, true);
-    // cout << "Writing Quad to: " << file_quad << endl;
-    // ofstream qo(file_quad);
-    // if (!qo) {
-    //     cerr << "Error opening file: " << file_quad << endl;
-    //     return EXIT_FAILURE;
-    // }
-    // qo << temp_str;
-    // qo.flush(); qo.close();
+    QuadProgram *qd = tree2quad(ir_canon);
+    if (qd == nullptr) {
+        cerr << "Error converting IR to Quad" << endl;
+        return EXIT_FAILURE;
+    }
+    cout << "Done converting IR to Quad" << endl;
+    string temp_str; temp_str.reserve(50000);
+    qd->print(temp_str, 0, true);
+    cout << "Writing Quad to: " << file_quad << endl;
+    ofstream qo(file_quad);
+    if (!qo) {
+        cerr << "Error opening file: " << file_quad << endl;
+        return EXIT_FAILURE;
+    }
+    qo << temp_str;
+    qo.flush(); qo.close();
 
-    // ofstream out("/dev/tty");
-    // out << "-----Done---" << endl;
+    ofstream out("/dev/tty");
+    out << "-----Done---" << endl;
     return EXIT_SUCCESS;
 }
