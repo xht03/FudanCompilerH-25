@@ -24,9 +24,8 @@ handin:
 		echo "请先在docs文件夹下攥写报告, 并转换为'report.pdf'"; \
 		exit 1; \
 	fi; \
-	echo "请输入'学号-姓名' (例如: 12345678910-某个人)"; \
-	read filename; \
-	zip -q -r "docs/$$filename-hw1.zip" \
+	filename="22307110206-胥昊天"; \
+	zip -q -r "docs/$$filename-hw6.zip" \
 	  docs/report.pdf include lib
 
 .PHONY: run run-one gentests gentest-one patchdemo 
@@ -35,15 +34,23 @@ MAIN = $(BUILD_DIR)/tools/main/main
 GENTESTS = $(BUILD_DIR)/tools/generatetests/gentests
 PATCHDEMO = $(BUILD_DIR)/tools/patchdemo/patchdemo
 
-run: $(MAIN)
-	cd $(CURDIR)/test && \
+
+define run_test
+	cd $(CURDIR)/test/$(1) && \
 	for file in $$(ls .); do \
 		if [ "$${file#*.}" = "3.irp" ]; then \
 			echo "Reading $${file}"; \
 			$(MAIN) "$${file%%.*}"; \
 		fi; \
 	done; \
-	cd .. > /dev/null 2>&1 
+	cd .. > /dev/null 2>&1
+endef
+
+run: $(MAIN)
+	$(call run_test,HW3)
+	$(call run_test,HW4)
+	$(call run_test,HW5)
+	$(call run_test,Func)
 
 FILE=test1
 

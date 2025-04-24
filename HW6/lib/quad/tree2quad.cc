@@ -34,8 +34,6 @@ Phi:  temp <- list of {temp, label}     // 与树中的 Phi 节点相同
 
 
 QuadProgram* tree2quad(Program* prog) {
-    // 正则化
-    Program* canonProg = canon(prog);
     // visitor 初始化
     Tree2Quad visitor;
     visitor.quad_prog = nullptr;
@@ -45,7 +43,7 @@ QuadProgram* tree2quad(Program* prog) {
     visitor.output_term = nullptr;
     visitor.temp_map = new Temp_map();
     // 将 IR 转换为 Quad
-    canonProg->accept(visitor);
+    prog->accept(visitor);
     return visitor.quad_prog;
 }
 
@@ -74,6 +72,8 @@ void Tree2Quad::visit(FuncDecl* node) {
     // 重置临时变量映射
     if (temp_map) delete temp_map;
     temp_map = new Temp_map();
+    temp_map->next_temp = node->last_temp_num + 1;
+    temp_map->next_label = node->last_label_num + 1;
 
     vector<QuadBlock*> *qbl = new vector<QuadBlock*>();
     if (node->blocks) {
@@ -85,7 +85,7 @@ void Tree2Quad::visit(FuncDecl* node) {
         }
     }
 
-    QuadFuncDecl *qfd = new QuadFuncDecl(node, node->name, node->args, qbl, node->last_label_num, node->last_temp_num);
+    QuadFuncDecl *qfd = new QuadFuncDecl(node, node->name, node->args, qbl, temp_map->next_label - 1, temp_map->next_temp - 1);
     quad_func = qfd;
 }
 
@@ -182,6 +182,10 @@ void Tree2Quad::visit(Move* node) {
             Call *callNode = static_cast<Call*>(node->src);
             callNode->accept(*this);
             QuadCall *call = static_cast<QuadCall*>(visit_result->back());
+            visit_result->clear();
+
+            def->insert(call->def->begin(), call->def->end());
+            use->insert(call->use->begin(), call->use->end());
             QuadMoveCall *move_call = new QuadMoveCall(node, dst_temp, call, def, use);
             visit_result->push_back(move_call);
         }
@@ -191,6 +195,10 @@ void Tree2Quad::visit(Move* node) {
             ExtCall *extcallNode = static_cast<ExtCall*>(node->src);
             extcallNode->accept(*this);
             QuadExtCall *extcall = static_cast<QuadExtCall*>(visit_result->back());
+            visit_result->clear();
+
+            def->insert(extcall->def->begin(), extcall->def->end());
+            use->insert(extcall->use->begin(), extcall->use->end());
             QuadMoveExtCall *move_extcall = new QuadMoveExtCall(node, dst_temp, extcall, def, use);
             visit_result->push_back(move_extcall);
         }
@@ -215,7 +223,8 @@ void Tree2Quad::visit(Move* node) {
         }
 
         // 若 src 是临时变量 (QuadMove)
-        else if (node->src->getTreeKind() == Kind::TEMPEXP) {
+        else if (node->src->getTreeKind() == Kind::TEMPEXP || 
+                 node->src->getTreeKind() == Kind::CONST) {
             TempExp *tempNode = static_cast<TempExp*>(node->src);
             tempNode->accept(*this);
             QuadTerm *src_term = output_term;
@@ -409,13 +418,9 @@ void Tree2Quad::visit(Call* node) {
         }
     }
 
-    // 返回值
-    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
-    def->insert(result_temp->temp);
-
-    QuadCall* call = new QuadCall(node, result_temp, node->id, obj_term, args, def, use);
+    QuadCall* call = new QuadCall(node, nullptr, node->id, obj_term, args, def, use);
     visit_result->push_back(call);
-    output_term = new QuadTerm(result_temp);
+    output_term = nullptr;
 }
 
 
@@ -436,11 +441,7 @@ void Tree2Quad::visit(ExtCall* node) {
         }
     }
 
-    // 返回值
-    TempExp* result_temp = new TempExp(node->type, temp_map->newtemp());
-    def->insert(result_temp->temp);
-
-    QuadExtCall* extcall = new QuadExtCall(node, result_temp, node->extfun, args, def, use);
+    QuadExtCall* extcall = new QuadExtCall(node, nullptr, node->extfun, args, def, use);
     visit_result->push_back(extcall);
-    output_term = new QuadTerm(result_temp);
+    output_term = nullptr;
 }
