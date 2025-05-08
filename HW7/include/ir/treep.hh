@@ -11,37 +11,36 @@ using namespace tree;
 
 namespace tree {
 
-//forward declaration
-class Tree; //abstract class
-class Program; //member: funcdecllist
+class Tree;     //abstract class
+class Program;  //member: funcdecllist
 class FuncDecl; //members: name, args, stm
-class Block; //members: name, args, stm
-class Stm; //abstract class
-class Jump; //members: label
-class Cjump; //members: relop, left, right, t, f
-class Move; //members: dst, src
-class Seq; //members: stmlist
+class Block;    //members: name, args, stm
+class Stm;      //abstract class
+class Jump;     //members: label
+class Cjump;    //members: relop, left, right, t, f
+class Move;     //members: dst, src
+class Seq;      //members: stmlist
 class LabelStm; //members: label
-class Return; //members: exp
-class Phi; //members: temp, args
-class ExpStm; //members: exp
-class Exp; //abstract class
-class Binop; //members: op, left, right
-class Mem; //members: mem
-class TempExp; //members: temp
-class Eseq; //members: stm, exp
-class Name; //members: name
-class Const; //members: constVal
-class Call; //members: id, obj, args
-class ExtCall; //members: extfun, args
+class Return;   //members: exp
+class Phi;      //members: temp, args
+class ExpStm;   //members: exp
+class Exp;      //abstract class
+class Binop;    //members: op, left, right
+class Mem;      //members: mem
+class TempExp;  //members: temp
+class Eseq;     //members: stm, exp
+class Name;     //members: name
+class Const;    //members: constVal
+class Call;     //members: id, obj, args
+class ExtCall;  //members: extfun, args
 
 enum class Type {INT, PTR};
 
 string typeToString(Type type); 
 
-//possible binary ops: +, -, *. /, &&, ||, xor 
-//note we don't need unary ops: "!" (not) is "1 xor", "-" (negate) is "0 -")
-//possible relop:  ==, !=, <, >, <=, >=
+// 可能的二元运算符: +, -, *. /, &&, ||, xor 
+// 无需一元运算符: ! -> 1 xor, - -> 0 -
+// 可能的关系运算符:  ==, !=, <, >, <=, >=
 
 class Visitor {
   public:
@@ -88,7 +87,6 @@ enum class Kind {
   EXTCALL
 };
 
-//forward declaration (declaration in treep.cc)
 string kindToString(Kind kind);
 
 class Tree {

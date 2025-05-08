@@ -15,8 +15,9 @@ using namespace quad;
 class VersionedTemp {
 public:
 
-//Here we use a rather simper method to generate temps with versions
-//with the assumption that the number of versions is small (<=100)
+// 这里我们采用一种较简单的方法生成 Temps with versions
+// 假设是版本数量较少 <= 100
+// 更完善的实现可通过记录每个新版本的编号，并使用 map 关联原始变量编号。
 
 static int versionedTempNum(int old_num, int version) {
     return old_num*100+version; //unique temp for each version
@@ -26,9 +27,6 @@ static int origTempNum(int versionedTempNum) {
     return versionedTempNum/100; //original temp number
 }
 
-//more sophisticated implementation can be done by remembering
-//the num of each new versions, and using a map to get the 
-//original temp num.
 };
 
 QuadProgram* quad2ssa(QuadProgram* program);

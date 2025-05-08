@@ -5,6 +5,7 @@
 #include <queue>
 #include <algorithm>
 #include <map>
+#include <cassert>
 #include "quad.hh"
 #include "flowinfo.hh"
 
@@ -18,6 +19,7 @@ void DataFlowInfo::findAllVars() {
     if (!func || !func->quadblocklist) return;
     
     allVars.clear();
+    varType.clear();
     defs->clear();
     uses->clear();
     
@@ -35,6 +37,22 @@ void DataFlowInfo::findAllVars() {
                         (*defs)[temp->num].insert(pair<QuadBlock*, QuadStm*>(block, stmt));
                     }
                 }
+
+                // 记录临时变量类型
+                TempExp* dst = nullptr; 
+                assert(stmt->def->size() <= 1);
+                if (stmt->kind == QuadKind::MOVE)
+                    dst = dynamic_cast<QuadMove*>(stmt)->dst;
+                else if (stmt->kind == QuadKind::LOAD)
+                    dst = dynamic_cast<QuadLoad*>(stmt)->dst;
+                else if (stmt->kind == QuadKind::MOVE_BINOP)
+                    dst = dynamic_cast<QuadMoveBinop*>(stmt)->dst;
+                else if (stmt->kind == QuadKind::MOVE_CALL)
+                    dst = dynamic_cast<QuadMoveCall*>(stmt)->dst;
+                else if (stmt->kind == QuadKind::MOVE_EXTCALL)
+                    dst = dynamic_cast<QuadMoveExtCall*>(stmt)->dst;
+                if (dst)
+                    varType[dst->temp->num] = dst->type;
             }
             // Add variables from use set
             if (stmt->use) {

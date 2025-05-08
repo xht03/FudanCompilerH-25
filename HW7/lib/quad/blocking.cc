@@ -16,30 +16,20 @@ static vector<QuadBlock*>* split_block(QuadBlock* block, Temp_map * temp_map);
 
 QuadProgram *blocking(QuadProgram *program) {
     if (program == nullptr || program->quadFuncDeclList == nullptr || program->quadFuncDeclList->empty()) {
-        return program;  // Nothing to do
+        return program;
     }
 
-#ifdef DEBUG
-    cout << "Blocking the quad" << endl;
-#endif
-    
+    // 函数声明列表
     vector<QuadFuncDecl*>* new_func_decl_list = new vector<QuadFuncDecl*>();
     
-    // Process each function declaration in the program
+    // 处理每个函数声明
     for (auto func_decl : *(program->quadFuncDeclList)) {
-#ifdef DEBUG
-        cout << "Blocking function: " << func_decl->funcname << endl;
-#endif
         QuadFuncDecl* new_func_decl = blocking(func_decl);
-        if (new_func_decl != nullptr) {
+        if (new_func_decl != nullptr)
             new_func_decl_list->push_back(new_func_decl);
-        }
     }
-#ifdef DEBUG
-    cout << "Finished blocking functions" << endl;
-#endif
     
-    // Create a new program with the modified function declarations
+    // 创建新程序
     QuadProgram* new_program = new QuadProgram(
         static_cast<tree::Program*>(program->node),
         new_func_decl_list
@@ -52,30 +42,24 @@ static QuadFuncDecl* blocking(QuadFuncDecl* func_decl) {
     if (func_decl == nullptr || func_decl->quadblocklist == nullptr || func_decl->quadblocklist->empty()) {
         return func_decl;  // Nothing to do
     }
-#ifdef DEBUG
-    cout << "Now blocking function: " << func_decl->funcname << endl;
-#endif
-    
+
+    // 临时变量和标签映射
     Temp_map * temp_map = new Temp_map();
     temp_map->next_label = func_decl->last_label_num + 1;
     temp_map->next_temp = func_decl->last_temp_num + 1;
 
-#ifdef DEBUG
-    cout << "Next label: " << temp_map->next_label << endl;
-    cout << "Next temp: " << temp_map->next_temp << endl;
-#endif
-
+    // 分块后的 block 列表
     vector<QuadBlock*>* new_blocks = new vector<QuadBlock*>();
     
-    // Process each block in the function
+    // 处理函数中的每个块
     for (auto block : *func_decl->quadblocklist) {
         if (block == nullptr || block->quadlist == nullptr || block->quadlist->empty()) {
-            // Keep empty blocks as is
+            // 保留空块
             new_blocks->push_back(block);
             continue;
         }
         
-        // Process each block by splitting it into smaller blocks based on control flow
+        // 将块分割成符合基本块标准的多个小块
         vector<QuadBlock*>* split_blocks = split_block(block, temp_map);
         if (split_blocks != nullptr) {
             new_blocks->insert(new_blocks->end(), split_blocks->begin(), split_blocks->end());
@@ -83,7 +67,7 @@ static QuadFuncDecl* blocking(QuadFuncDecl* func_decl) {
         }
     }
     
-    // Create a new function declaration with the new blocks
+    // 创建新的函数声明
     QuadFuncDecl* new_func_decl = new QuadFuncDecl(
         func_decl->node,
         func_decl->funcname,
