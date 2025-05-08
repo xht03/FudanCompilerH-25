@@ -24,7 +24,10 @@ static int versionedTempNum(int old_num, int version) {
 }
 
 static int origTempNum(int versionedTempNum) {
-    return versionedTempNum/100; //original temp number
+    if (versionedTempNum >= 10000)
+        return versionedTempNum/100;
+    else
+        return versionedTempNum; 
 }
 
 };

@@ -19,15 +19,15 @@ using namespace tinyxml2;
 int main(int argc, const char *argv[]) {
 
     // 切换到 test 目录
-    filesystem::path filePath(__FILE__);
-    filesystem::path directory = filePath.parent_path();
-    chdir(directory.c_str());
-    chdir("../../test");
+    // filesystem::path filePath(__FILE__);
+    // filesystem::path directory = filePath.parent_path();
+    // chdir(directory.c_str());
+    // chdir("../../test");
 
     string file;
-    string dir = "HW4/";
-    file = dir + "hw4test03";
-    // file = dir + argv[argc - 1];
+    file = argv[argc - 1];
+    // string dir = "HW4/";
+    // file = dir + "hw4test05";
 
     string file_quad_xml = file + ".4-xml.quad";
     string file_quad = file + ".4.quad";

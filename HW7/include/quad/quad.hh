@@ -265,25 +265,26 @@ class QuadStore : public QuadStm{
     QuadStore* clone() const override;
 
     // 变量重命名
-    void renameDef(Temp* oldTemp, Temp* newTemp) override
-    {
-        assert(def->find(oldTemp) != def->end());
-        def->erase(oldTemp);
-        def->insert(newTemp);
-        assert(src->kind == QuadTermKind::TEMP);
-        TempExp* temp = get<TempExp*>(src->term);
-        assert(temp->temp == oldTemp);
-        temp->temp = newTemp;
-    }
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
         assert(use->find(oldTemp) != use->end());
         use->erase(oldTemp);
         use->insert(newTemp);
-        assert(dst->kind == QuadTermKind::TEMP);
-        TempExp* temp = get<TempExp*>(dst->term);
-        assert(temp->temp == oldTemp);
-        temp->temp = newTemp;
+        if (src->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(src->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (dst->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(dst->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
     }
 };
 

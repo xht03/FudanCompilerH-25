@@ -190,7 +190,7 @@ set<Temp*>* QuadStm::cloneTemps(const set<Temp*>* temps) const {
     set<Temp*>* newTemps = new set<Temp*>();
     for (auto temp : *temps) {
         if (temp) {
-            newTemps->insert(new Temp(temp->num));
+            newTemps->insert(temp);
         }
     }
     return newTemps;
