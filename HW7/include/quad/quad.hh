@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <variant>
+#include <cassert>
 #include "tinyxml2.hh"
 #include "temp.hh"
 #include "treep.hh"
@@ -181,9 +182,10 @@ class QuadStm : public Quad {
         : Quad(k, node), kind(k), def(def), use(use) {}
     virtual void accept(QuadVisitor &v) = 0;
     virtual void print(string &output_str, int indent, bool print_def_use) = 0;
-    
-    // Helper method for cloning def/use sets
     set<Temp*>* cloneTemps(const set<Temp*>* temps) const;
+
+    virtual void renameDef(Temp* oldTemp, Temp* newTemp) = 0;
+    virtual void renameUse(Temp* oldTemp, Temp* newTemp) = 0;
 };
 
 class QuadMove : public QuadStm{
@@ -197,6 +199,24 @@ class QuadMove : public QuadStm{
     
     // Clone function
     QuadMove* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
 };
 
 class QuadLoad : public QuadStm{
@@ -210,6 +230,26 @@ class QuadLoad : public QuadStm{
     
     // Clone function
     QuadLoad* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
 };
 
 class QuadStore : public QuadStm{
@@ -223,6 +263,28 @@ class QuadStore : public QuadStm{
     
     // Clone function
     QuadStore* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+        assert(dst->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(dst->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
 };
 
 class QuadMoveBinop : public QuadStm{
@@ -238,6 +300,37 @@ class QuadMoveBinop : public QuadStm{
     
     // Clone function
     QuadMoveBinop* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+    }
 };
 
 //Call is always a load a call result to a temp
@@ -253,6 +346,32 @@ class QuadCall : public QuadStm{
     
     // Clone function
     QuadCall* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+
+        if (obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(obj_term->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+    }
 };
 
 class QuadMoveCall : public QuadStm{
@@ -266,6 +385,39 @@ class QuadMoveCall : public QuadStm{
     
     // Clone function
     QuadMoveCall* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+
+        if (call->obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(call->obj_term->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        for (auto& arg : *call->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+    }
 };
 
 class QuadExtCall : public QuadStm{
@@ -279,6 +431,25 @@ class QuadExtCall : public QuadStm{
     
     // Clone function
     QuadExtCall* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+    }
 };
 
 class QuadMoveExtCall : public QuadStm{
@@ -292,6 +463,33 @@ class QuadMoveExtCall : public QuadStm{
     
     // Clone function
     QuadMoveExtCall* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+
+        for (auto& arg : *extcall->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+    }
 };
 
 class QuadLabel : public QuadStm{
@@ -304,6 +502,9 @@ class QuadLabel : public QuadStm{
     
     // Clone function
     QuadLabel* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { }
 };
 
 class QuadJump : public QuadStm{
@@ -316,6 +517,9 @@ class QuadJump : public QuadStm{
     
     // Clone function
     QuadJump* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { }
 };
 
 class QuadCJump : public QuadStm{
@@ -331,6 +535,29 @@ class QuadCJump : public QuadStm{
     
     // Clone function
     QuadCJump* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+    }
 };
 
 class QuadPhi : public QuadStm {
@@ -344,6 +571,17 @@ class QuadPhi : public QuadStm {
     
     // Clone function
     QuadPhi* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(def->find(oldTemp) != def->end());
+        def->erase(oldTemp);
+        def->insert(newTemp);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override {}
 };
 
 class QuadReturn : public QuadStm{
@@ -356,6 +594,23 @@ class QuadReturn : public QuadStm{
     
     // Clone function
     QuadReturn* clone() const override;
+
+    // 变量重命名
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        assert(use->find(oldTemp) != use->end());
+        use->erase(oldTemp);
+        use->insert(newTemp);
+        if (value->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(value->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
 };
 
 } //namespace quad

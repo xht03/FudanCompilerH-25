@@ -9,6 +9,7 @@
 #include <queue>
 #include <algorithm>
 #include <utility>
+#include <functional>
 #include "treep.hh"
 #include "quad.hh"
 #include "flowinfo.hh"
@@ -73,12 +74,100 @@ static void placePhi(ControlFlowInfo* domInfo) {
 
 // 重命名变量
 static void renameVariables(ControlFlowInfo* domInfo) {
-    
+    // 收集函数中所有被定义和使用的变量
+    DataFlowInfo dataFlowInfo(domInfo->func);
+    dataFlowInfo.findAllVars();
+
+    // 为每个变量维护一个栈，用于跟踪当前版本
+    map<int, stack<int>> stacks;    // 变量编号 -> 其所有版本号
+    map<int, int> counter;          // 变量编号 -> 最新版本（版本计数器）
+
+    // 初始化栈和计数器
+    for (auto var : dataFlowInfo.allVars) {
+        counter[var] = 0;
+        stacks[var] = stack<int>();
+        stacks[var].push(0);  // 初始版本为 0
+    }
+
+    // 递归函数：重命名变量
+    std::function<void(int)> rename = [&](int blockLabel) {
+        // 获取当前块
+        QuadBlock* block = domInfo->labelToBlock[blockLabel];
+        if (!block || !block->quadlist) return;
+
+        vector<int> defined;  // 此块中定义的变量
+
+        // 处理当前块中的每个语句
+        for (auto& stm : *block->quadlist) {
+            // 如果 stm 不是 Phi 函数
+            if (stm->kind != QuadKind::PHI) {
+                std::set<Temp*>* use_clone = stm->cloneTemps(stm->use);
+                for (auto& temp : *use_clone) {
+                    int ver = stacks[temp->num].top();  // 获取当前版本
+                    int new_num = VersionedTemp::versionedTempNum(temp->num, ver);
+                    Temp* new_temp = new Temp(new_num);
+                    stm->use->erase(temp);          // 删除旧的 temp
+                    stm->use->insert(new_temp);     // 插入新的 temp
+                }
+            }
+
+            // 对于 stm 中的每一个变量的 def
+            std::set<Temp*>* def_clone = stm->cloneTemps(stm->def);
+            for (auto& temp : *def_clone) {
+                // 更新版本栈和计数器
+                counter[temp->num]++;  
+                stacks[temp->num].push(counter[temp->num]);
+                // 生成新的 temp
+                int ver = stacks[temp->num].top();
+                int new_num = VersionedTemp::versionedTempNum(temp->num, ver);
+                Temp* new_temp = new Temp(new_num);
+                stm->def->erase(temp);          // 删除旧的 temp
+                stm->def->insert(new_temp);     // 插入新的 temp
+
+                // 更新定义列表
+                defined.push_back(temp->num);
+            }
+        }
+
+        // 更新后继块中的 Phi 函数
+        for(auto succ_num : domInfo->successors[blockLabel]) {
+            QuadBlock* succ_block = domInfo->labelToBlock[succ_num];
+            // 对于每一个 Phi 函数
+            for (auto& stm : *succ_block->quadlist) {
+                if (auto phi = dynamic_cast<QuadPhi*>(stm)) {
+                    // 对于 Phi 每一个参数
+                    for (auto& arg : *phi->args) {
+                        // 如果参数的标签是当前块的标签
+                        if (arg.second == block->entry_label) {
+                            // 更新参数
+                            int ver = stacks[arg.first->num].top();
+                            int new_num = VersionedTemp::versionedTempNum(arg.first->num, ver);
+                            Temp* new_temp = new Temp(new_num);
+                            arg.first = new_temp;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 递归处理子块
+        for (auto child : domInfo->domTree[blockLabel]) {
+            rename(child);
+        }
+
+        // 递归返回后，在当前块定义过的变量，弹出版本栈顶元素
+        for (auto& temp : defined) {
+            stacks[temp].pop();
+        }
+    };
+
+    // 从入口块开始重命名
+    rename(domInfo->entryBlock);
 }
 
 // 清理未使用的 phi 函数
 static void cleanupUnusedPhi(QuadFuncDecl* func) {
-    return; // Placeholder for the actual implementation
+    
 }
 
 QuadProgram *quad2ssa(QuadProgram* program) {
