@@ -50,18 +50,23 @@ static void placePhi(ControlFlowInfo* domInfo) {
         if (dataFlowInfo.defs->find(var) == dataFlowInfo.defs->end()) 
             continue; // 如果该变量没有定义，跳过
 
-        auto W = dataFlowInfo.defs->at(var);    // W 初始化为：变量的定义位置
+        auto W = dataFlowInfo.defs->at(var);    // W 初始化为：变量的定义位置 (可能不止一个)
+
+        // 对于每一个定义位置
         while(!W.empty()) {
             quad::QuadBlock* block = W.begin()->first;
             quad::QuadStm* stm = W.begin()->second;
             W.erase(W.begin());
 
-            // 对于每一个支配边界
+            // 对于每一个支配边界 F
             for (int F : domInfo->dominanceFrontiers[block->entry_label->num]) {
                 /**
-                 * 如果在该支配边界上：
+                 * 如果在该支配边界 F 上：
+                 * 
                  * 1. 该变量的 phi 函数未定义
                  * 2. 该变量在 F 入口标签的 live_out 里 (即：控制流离开 F 之后还会使用该变量)
+                 * 
+                 * 那么在 F 上放置一个 phi 函数
                  */
                 auto F_block = domInfo->labelToBlock[F];
                 const auto& F_liveout = dataFlowInfo.liveout->at(*F_block->quadlist->begin());
@@ -84,7 +89,7 @@ static void renameVariables(ControlFlowInfo* domInfo) {
     dataFlowInfo.findAllVars();
 
     // 为每个变量维护一个栈，用于跟踪当前版本
-    map<int, stack<Temp*>> stacks; // 变量编号 -> 所有历史变量名
+    map<int, stack<Temp*>> stacks;  // 变量编号 -> 所有历史变量名
     map<int, int> counter;          // 变量编号 -> 最新版本（版本计数器）
 
     // 初始化栈和计数器
@@ -105,6 +110,7 @@ static void renameVariables(ControlFlowInfo* domInfo) {
         for (auto& stm : *block->quadlist) {
             // 如果 stm 不是 Phi 函数
             if (stm->kind != QuadKind::PHI) {
+                // 对 stm 中的每一个 use 的变量，进行重命名
                 for (auto& temp : *stm->cloneTemps(stm->use)) {
                     if (stacks.find(temp->num) != stacks.end() && stacks[temp->num].size() > 0) {
                         stm->renameUse(temp, stacks[temp->num].top());
@@ -131,8 +137,9 @@ static void renameVariables(ControlFlowInfo* domInfo) {
         // 更新后继块中的 Phi 函数
         for(auto succ_num : domInfo->successors[blockLabel]) {
             QuadBlock* succ_block = domInfo->labelToBlock[succ_num];
-            // 对于每一个 Phi 函数
+            // 对于后继块中的每一个语句
             for (auto& stm : *succ_block->quadlist) {
+                // 如果是 Phi 函数
                 if (stm->kind == QuadKind::PHI) {
                     auto phi = static_cast<QuadPhi*>(stm);
                     auto origin_num = VersionedTemp::origTempNum(phi->temp->temp->num);
@@ -169,9 +176,7 @@ static void renameVariables(ControlFlowInfo* domInfo) {
 }
 
 // 清理未使用的 phi 函数
-static void cleanupUnusedPhi(QuadFuncDecl* func) {
-    
-}
+static void cleanupUnusedPhi(QuadFuncDecl* func) { }
 
 QuadProgram *quad2ssa(QuadProgram* program) {
     // SSA 版本的程序
