@@ -34,6 +34,7 @@
             <Color node="12700" color="0"/>
             <Color node="12800" color="0"/>
             <Color node="12900" color="0"/>
+            <Color node="13000" color="0"/>
         </Colors>
         <Spills/>
     </Coloring>

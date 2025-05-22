@@ -51,7 +51,7 @@ bool Coloring::coalesce() {
     
         // 如果有一个节点不在图中，跳过
         if (graph.find(u) == graph.end() || graph.find(v) == graph.end()) {
-            it = movePairs.erase(it);   // 为什么这里要删除？因为它们已经不在图中了
+            it = movePairs.erase(it);   // 因为它们已经不在图中了
             continue;
         }
 
@@ -183,7 +183,7 @@ bool Coloring::select() {
             if (colors.find(neighbor) != colors.end())
                 usedColors.insert(colors[neighbor]);
 
-            // 已合并到其他节点的邻居
+            // 如果邻居是被合并了的节点，检查它的主节点是否已被着色
             for (auto& pair : coalescedMoves) {
                 if (pair.second.find(neighbor) != pair.second.end() && 
                     colors.find(pair.first) != colors.end()) {
@@ -206,6 +206,17 @@ bool Coloring::select() {
             colors[node] = selectedColor;
         else
             spilled.insert(node);
+
+        // 颜色传播
+        for (auto& pair : coalescedMoves) {
+            int target = pair.first;
+            if (colors.find(target) != colors.end()) {
+                // 如果主节点已着色，则将合并的节点着色为主节点的颜色
+                for (int merged : pair.second) {
+                    colors[merged] = colors[target];
+                }
+            }
+        }
     }
     return checkColoring();
 }
