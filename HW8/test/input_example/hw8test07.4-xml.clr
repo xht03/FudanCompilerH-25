@@ -17,8 +17,6 @@
             <Color node="10000" color="0"/>
             <Color node="10300" color="1"/>
             <Color node="10400" color="0"/>
-            <Color node="10700" color="0"/>
-            <Color node="10900" color="0"/>
             <Color node="11200" color="1"/>
             <Color node="11300" color="1"/>
             <Color node="11400" color="1"/>
@@ -27,6 +25,9 @@
             <Color node="11800" color="0"/>
             <Color node="11900" color="0"/>
         </Colors>
-        <Spills/>
+        <Spills>
+            <Spill node="10700"/>
+            <Spill node="10900"/>
+        </Spills>
     </Coloring>
 </COLORING>

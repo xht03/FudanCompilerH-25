@@ -218,5 +218,17 @@ bool Coloring::select() {
             }
         }
     }
+
+    // 检查是否有未处理的节点
+    for (auto& pair : ig->graph) {
+        int node = pair.first;
+        if (colors.find(node) == colors.end() && spilled.find(node) == spilled.end()) {
+            // 尝试为未处理节点找一个颜色
+            if (!isMachineReg(node)) {
+                spilled.insert(node); // 如果无法给节点着色，将其标记为溢出
+            }
+        }
+    }
+    
     return checkColoring();
 }
