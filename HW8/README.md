@@ -7,3 +7,12 @@ This is Homework 8 assignment.
 3) The input quad programs are prepared for use for RPi (ARM) architecture targets. We will explain this preparation step in class. The preparation code is given under lib/rpi in prepareregalloc.cc. You need to follow the steps in the main.cc program and read the SSA Quad and prepare for Coloring with prepareregalloc.cc code.
 
 4) The Interference graph class and the corresponding code to build the IG's are also given. Please see code and use the main.cc example.
+
+
+03
+08
+01
+09
+fibonacci
+06
+05

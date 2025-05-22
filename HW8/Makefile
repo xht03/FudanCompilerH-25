@@ -50,36 +50,16 @@ GENTESTS = $(BUILD_DIR)/tools/generatetests/gentests
 PATCHDEMO = $(BUILD_DIR)/tools/patchdemo/patchdemo
 
 run: $(MAIN)
-	cd $(CURDIR)/test && \
-	for file in $$(ls .); do \
-		if [ "$${file#*.}" = "4-ssa-xml.quad" ]; then \
-			echo "Reading $${file}"; \
-			$(MAIN) "$${file%%.*}"; \
-		fi; \
+	@mkdir -p $(CURDIR)/test/my_output && \
+	for file in $$(find $(CURDIR)/test/input_example -name "*.4-ssa-xml.quad"); do \
+		filename=$$(basename "$$file" .4-ssa-xml.quad); \
+		echo "Processing: $$filename"; \
+		cd $(CURDIR) && $(MAIN) "$(CURDIR)/test/input_example/$$filename"; \
+		mv -f "$(CURDIR)/test/input_example/$$filename.4-prepared.quad" "$(CURDIR)/test/my_output/" 2>/dev/null || true; \
+		mv -f "$(CURDIR)/test/input_example/$$filename.4-prepared-xml.quad" "$(CURDIR)/test/my_output/" 2>/dev/null || true; \
+		mv -f "$(CURDIR)/test/input_example/$$filename.4-xml.clr" "$(CURDIR)/test/my_output/" 2>/dev/null || true; \
 	done; \
-	cd .. > /dev/null 2>&1 
+	echo "所有文件处理完成，输出已保存到 test/my_output 目录"
 
-run-5: $(MAIN)
-	cd $(CURDIR)/test && \
-	for file in $$(ls .); do \
-		if [ "$${file#*.}" = "4-ssa-xml.quad" ]; then \
-			echo "Reading $${file}"; \
-			$(MAIN) -k 5 "$${file%%.*}"; \
-		fi; \
-	done; \
-	cd .. > /dev/null 2>&1 
 
-FILE=test1
-
-run-one-5: $(MAIN)
-	cd $(CURDIR)/test && \
-	echo "Reading ${FILE}.4-ssa-xml.quad"; \
-	$(MAIN) -k 5 "${FILE}"; \
-	cd .. > /dev/null 2>&1 
-
-run-one: $(MAIN)
-	cd $(CURDIR)/test && \
-	echo "Reading ${FILE}.4-ssa-xml.quad"; \
-	$(MAIN) "${FILE}"; \
-	cd .. > /dev/null 2>&1 
 

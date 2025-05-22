@@ -18,10 +18,9 @@ int main(int argc, const char *argv[]) {
     int number_of_colors = 9; //default 9: r0-r8
     
     string file;
-    // file = argv[argc - 1];
-
-    string dir = "/home/keats/FudanCompilerH2025/HW8/test/input_example/";
-    file = dir +"hw8test00";
+    file = argv[argc - 1];
+    // string dir = "/home/keats/FudanCompilerH2025/HW8/test/input_example/";
+    // file = dir +"hw8test06";
 
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
     string file_quad_prepared = file + ".4-prepared.quad";

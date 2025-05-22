@@ -19,24 +19,20 @@ bool isAnEdge(map<int, set<int>>& graph, int src, int dst) {
 // 移除度数小于 k 非预着色节点
 // 如果有任何节点被移除，返回 true
 bool Coloring::simplify() {
-    bool removed = false;
-
     // 遍历图中所有节点
-    for (auto it = graph.begin(); it != graph.end(); ) {
+    for (auto it = graph.begin(); it != graph.end(); it++) {
         int node = it->first;
         int degree = it->second.size();
 
         // 如果 1.不是机器寄存器; 2.度数 <k; 3.不是移动指令
-        if (!isMachineReg(node) && degree < k && !isMove(node)) {
+        if (isMachineReg(node) && degree < k && !isMove(node)) {
             simplifiedNodes.push(node);
             eraseNode(node);            // 从图中删除节点
-            removed = true;             // 标记已移除节点
-            break;
-        } else {
-            it++;
+            return true;
         }
     }
-    return removed;
+
+    return false;
 }
 
 // 合并 move 指令对应的变量
@@ -44,24 +40,16 @@ bool Coloring::simplify() {
 bool Coloring::coalesce() {
 
     // 遍历所有的移动指令对
-    for (auto it = movePairs.begin(); it != movePairs.end(); ) {
-        int u = it->first;
-        int v = it->second;
+    if (!movePairs.empty()) {
+        int u = movePairs.begin()->first;
+        int v = movePairs.begin()->second;
         bool canCoalesce = false;
-    
-        // 如果有一个节点不在图中，跳过
-        if (graph.find(u) == graph.end() || graph.find(v) == graph.end()) {
-            it = movePairs.erase(it);   // 因为它们已经不在图中了
-            continue;
-        }
 
         // 如果存在干扰边，则不能合并
-        if (graph[u].find(v) != graph[u].end()) {
-            ++it;
-            continue;
-        }
+        if (graph[u].find(v) != graph[u].end())
+            return false;
 
-        // 若有预着色寄存器
+        // 若有机器寄存器
         if (isMachineReg(u) || isMachineReg(v)) {
             // 确保 u 始终是机器寄存器
             if (isMachineReg(v)) std::swap(u, v);
@@ -87,11 +75,16 @@ bool Coloring::coalesce() {
 
         // 如果可以合并
         if (canCoalesce) {
-            // 记录合并信息
+            // 合并 v 到 u
             if (coalescedMoves.find(u) == coalescedMoves.end())
                 coalescedMoves[u] = set<int>();
             coalescedMoves[u].insert(v);
-            
+            if (coalescedMoves.find(v) != coalescedMoves.end()) {
+                for (int coalesced : coalescedMoves[v]) {
+                    coalescedMoves[u].insert(coalesced);
+                }
+            }
+
             // 将 v 的所有邻居连接到 u
             for (auto& t : graph[v])
                 if (t != u) addEdge(u, t);
@@ -99,12 +92,28 @@ bool Coloring::coalesce() {
             // 从图中移除 v
             eraseNode(v);
             
-            // 移除此移动指令对
-            it = movePairs.erase(it);
+            // 移除该移动对 (双向)
+            movePairs.erase(movePairs.begin());
+            for (auto it = movePairs.begin(); it != movePairs.end(); it++) {
+                if (it->first == u || it->second == u) {
+                    movePairs.erase(it);
+                    break;
+                }
+            }
+
+            // 重命名 movePairs 中的 v
+            std::set<std::pair<int, int>> newMovePairs;
+            for (const auto& p : movePairs) {
+                auto newPair = p;
+                if (newPair.first == v)
+                    newPair.first = u;
+                if (newPair.second == v)
+                    newPair.second = u;
+                newMovePairs.insert(newPair);
+            }
+            movePairs = std::move(newMovePairs);
             
             return true;
-        } else {
-            it++;
         }
     }
     return false;
@@ -159,6 +168,8 @@ bool Coloring::spill() {
     return false;
 }
 
+
+
 // 尝试为所有节点分配寄存器，并检查着色有效性
 bool Coloring::select() {
     // 为机器寄存器预着色
@@ -166,8 +177,24 @@ bool Coloring::select() {
         int node = pair.first;
         if (isMachineReg(node)) {
             colors[node] = node; // 机器寄存器颜色固定
+            if (coalescedMoves.find(node) != coalescedMoves.end()) { // 给合并的节点上色
+                for (int coalesced : coalescedMoves[node]) {
+                    colors[coalesced] = node;
+                }
+            }
         }
     }
+
+    // Debug: 打印 coalescedMoves
+    // cout << "Coalesced moves:" << endl;
+    // for (auto& pair : coalescedMoves) {
+    //     cout << "Node " << pair.first << ": ";
+    //     for (int coalesced : pair.second) {
+    //         cout << coalesced << " ";
+    //     }
+    //     cout << endl;
+    // }
+
     // 从简化栈中依次弹出节点，进行着色
     while (!simplifiedNodes.empty()) {
         int node = simplifiedNodes.top();
@@ -175,22 +202,19 @@ bool Coloring::select() {
         
         // 找出该节点在原始图中的所有邻居
         set<int> neighbors = ig->graph[node];
-        
+
+        // 如果 node 是合并后的主节点
+        if (coalescedMoves.find(node) != coalescedMoves.end())
+            for (int coalesced : coalescedMoves[node])      // 对每一个被合并的节点
+                for (int neighbor : ig->graph[coalesced])   // 遍历其邻居
+                    if (neighbor != node) 
+                        neighbors.insert(neighbor);
+                       
         // 已被邻居使用的颜色
         set<int> usedColors;
-        for (int neighbor : neighbors) {
-            // 检查邻居是否已被着色
+        for (int neighbor : neighbors)
             if (colors.find(neighbor) != colors.end())
                 usedColors.insert(colors[neighbor]);
-
-            // 如果邻居是被合并了的节点，检查它的主节点是否已被着色
-            for (auto& pair : coalescedMoves) {
-                if (pair.second.find(neighbor) != pair.second.end() && 
-                    colors.find(pair.first) != colors.end()) {
-                    usedColors.insert(colors[pair.first]);
-                }
-            }
-        }
         
         // 找到一个未使用的颜色 (0~k-1)
         int selectedColor = -1;
@@ -207,28 +231,21 @@ bool Coloring::select() {
         else
             spilled.insert(node);
 
-        // 颜色传播
+        // 颜色传播 + 溢出传播
         for (auto& pair : coalescedMoves) {
             int target = pair.first;
             if (colors.find(target) != colors.end()) {
                 // 如果主节点已着色，则将合并的节点着色为主节点的颜色
-                for (int merged : pair.second) {
-                    colors[merged] = colors[target];
-                }
+                for (int coalesced : pair.second) 
+                    colors[coalesced] = colors[target];   
+            }
+            else if (spilled.find(target) != spilled.end()) {
+                // 如果主节点溢出，则将合并的节点标记为溢出
+                for (int coalesced : pair.second) 
+                    spilled.insert(coalesced);
             }
         }
     }
 
-    // 检查是否有未处理的节点
-    for (auto& pair : ig->graph) {
-        int node = pair.first;
-        if (colors.find(node) == colors.end() && spilled.find(node) == spilled.end()) {
-            // 尝试为未处理节点找一个颜色
-            if (!isMachineReg(node)) {
-                spilled.insert(node); // 如果无法给节点着色，将其标记为溢出
-            }
-        }
-    }
-    
     return checkColoring();
 }
