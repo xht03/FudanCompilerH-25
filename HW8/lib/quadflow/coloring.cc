@@ -146,6 +146,7 @@ XMLElement* Coloring::coloring2xml(XMLDocument *doc, string funcname) {
 
 Coloring *coloring(InterferenceGraph *ig, int k) {
     Coloring *c = new Coloring(ig, k);
+    int cnt = 0;
     while (c->simplify() || c->coalesce() || c->freeze() || c->spill()) {
         // Keep simplifying, coalescing, freezing, and spilling until no more changes can be made
 #ifdef DEBUG
