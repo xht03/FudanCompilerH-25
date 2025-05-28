@@ -34,8 +34,7 @@ handin:
 		echo "请先在docs文件夹下攥写报告, 并转换为'report.pdf'"; \
 		exit 1; \
 	fi; \
-	echo "请输入'学号-姓名' (例如: 12345678910-某个人)"; \
-	read filename; \
+	filename="22307110206-胥昊天"
 	zip -q -r "docs/$$filename-hw8.zip" \
 	  docs/report.pdf include lib
 

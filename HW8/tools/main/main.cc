@@ -15,7 +15,7 @@ using namespace quad;
 using namespace tinyxml2;
 
 int main(int argc, const char *argv[]) {
-    int number_of_colors = 9; //default 9: r0-r8
+    int number_of_colors = 9; //default 9: r0-r8·
     
     string file;
     file = argv[argc - 1];
