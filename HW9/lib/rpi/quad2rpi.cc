@@ -15,9 +15,9 @@ static string current_funcname = "";
 
 // 将函数名转换为汇编器可接受的格式 (将特殊字符替换为$)
 string normalizeName(string name) {
-    if (name == "_^main^_^main") { //speial case for main
-        return "main";
-    }
+    // 如果函数名是 "_^main^_^main"，则转换为 "main"
+    if (name == "_^main^_^main") return "main";
+
     for (char& c : name) {
         if (!isalnum(c)) {
             c = '$';
@@ -38,10 +38,12 @@ string term2str(QuadTerm *term, Color *color, bool isLeft = true) {
             result = "r" + to_string(isLeft ? 9 : 10);
         else
             result = "r" + to_string(color->color_of(t->num));
-    } else if (term->kind == QuadTermKind::CONST) {
+    } 
+    else if (term->kind == QuadTermKind::CONST) {
         result = "#" + to_string(term->get_const());
-    } else if (term->kind == QuadTermKind::MAME) {
-        result = "@" + term->get_name();
+    } 
+    else if (term->kind == QuadTermKind::MAME) {
+        result = "=" + normalizeName(term->get_name());
     } else {
         cerr << "Error: Unknown term kind" << endl;
         exit(EXIT_FAILURE);
@@ -174,7 +176,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo *dfi, Color *color, int indent) 
                         dstReg = getDstReg(dstNum, color);
 
                         // 从栈中加载溢出变量 (如果 dst 是溢出变量)
-                        result += loadSrcReg(nextLoad->src, color, indent, true);
+                        result += loadSrcReg(leftTerm, color, indent, true);
 
                         // 添加 Load 指令
                         result += string(indent, ' ') + "ldr r" + to_string(dstReg) + ", ["
@@ -279,6 +281,12 @@ string convert(QuadFuncDecl* func, DataFlowInfo *dfi, Color *color, int indent) 
                 result += string(indent, ' ') + "bl " + extCallStm->extfun + "\n";
             }
 
+            // MoveExtCall
+            else if (stm->kind == QuadKind::MOVE_EXTCALL) {
+                auto moveExtCallStm = static_cast<QuadMoveExtCall*>(stm);
+                result += string(indent, ' ') + "bl " + moveExtCallStm->extcall->extfun + "\n";
+            }
+
             // QuadJump
             else if (stm->kind == QuadKind::JUMP) {
                 auto jumpStm = static_cast<QuadJump*>(stm);
@@ -332,18 +340,28 @@ string convert(QuadFuncDecl* func, DataFlowInfo *dfi, Color *color, int indent) 
 
 // 将 QuadProgram 转换为带 k 个寄存器的 RPI 格式
 string quad2rpi(QuadProgram* quadProgram, ColorMap *cm) {
-    string result; result.reserve(10000);
-    // 遍历Quad程序中的函数声明
+    string result; 
+    result.reserve(10000);
     result = ".section .note.GNU-stack\n\n@ Here is the RPI code\n\n";
+
+    // 遍历Quad程序中的函数声明
     for (QuadFuncDecl* func : *quadProgram->quadFuncDeclList) {
         //获取函数的数据流信息
         DataFlowInfo *dfi = new DataFlowInfo(func);
-        dfi->computeLiveness(); //活跃性分析在某些情况下有用。必须在trace前完成！
-        trace(func); //合并所有基本块
-        current_funcname = func->funcname; //设置全局变量
+        
+        //活跃性分析在某些情况下有用。必须在trace前完成！
+        dfi->computeLiveness(); 
+        
+        //合并所有基本块
+        trace(func); 
+
+        //设置全局变量
+        current_funcname = func->funcname;
+
         //获取该函数的寄存器分配方案
         Color *c = cm->color_map[func->funcname]; 
-        int indent = 8;
+
+        int indent = 9;
         result += convert(func, dfi, c, indent) + "\n";
     }
     //在末尾添加全局函数声明

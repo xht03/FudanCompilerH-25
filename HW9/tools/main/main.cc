@@ -2,6 +2,9 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <filesystem>
+#include <unistd.h>
+
 #include "treep.hh"
 #include "quad.hh"
 #include "xml2quad.hh"
@@ -15,31 +18,35 @@ using namespace quad;
 using namespace tinyxml2;
 
 int main(int argc, const char *argv[]) {
+    // 切换到test目录
+    filesystem::path filePath(__FILE__);
+    filesystem::path directory = filePath.parent_path();
+    chdir(directory.c_str());
+    chdir("../../test/input_example");
+
     string file;
-
-    const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
-
-    if ((!debug && argc != 2) || (debug && argc != 3)) {
-        cerr << "Usage: " << argv[0] << " [--debug] filename" << endl;
-        return EXIT_FAILURE;
-    }
     file = argv[argc - 1];
+    // file = "hw8test06";
 
-    // boilerplate output filenames (used throughout the compiler pipeline)
+    string color_dir = "k5/"; // 选择着色数
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
-    string file_quad_color_xml = file + ".4-xml.clr";
-    string file_rpi = file + ".s";
+    string file_quad_ssa = file + ".4-prepared.txt";
+    string file_quad_color_xml = color_dir + file + ".4-xml.clr";
+    string file_rpi = file + ".my.s";
 
-    cout << "Reading prepared quad from xml: " << file_quad_prepared_xml << endl;
-    quad::QuadProgram *x3 = xml2quad(file_quad_prepared_xml.c_str());
+    cout << "读取quad: " << file_quad_prepared_xml << endl;
+    quad::QuadProgram* x3 = xml2quad(file_quad_prepared_xml.c_str());
     if (x3 == nullptr) {
         cerr << "Error reading Quad from xml: " << file_quad_prepared_xml << endl;
         return EXIT_FAILURE;
     }
-    cout << "Reading prepared colors for the QuadProgram: " << file_quad_color_xml << endl;
-    ColorMap *colormap = xml2colormap(file_quad_color_xml);
-    //colormap->print(); //check the color map
-    cout << "Writing rpi code to: " << file_rpi << endl;
+    quad2file(x3, file_quad_ssa, true);
+
+    cout << "读取colors: " << file_quad_color_xml << endl;
+    ColorMap* colormap = xml2colormap(file_quad_color_xml);
+    // colormap->print();
+
+    cout << "保存Rpi: " << file_rpi << endl;
     quad2rpi(x3, colormap, file_rpi);
     cout << "-----Done---" << endl;
     return EXIT_SUCCESS;
