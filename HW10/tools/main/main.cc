@@ -2,6 +2,9 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <filesystem>
+#include <unistd.h>
+
 #include "treep.hh"
 #include "quad.hh"
 #include "quad2xml.hh"
@@ -13,33 +16,54 @@ using namespace tree;
 using namespace quad;
 using namespace tinyxml2;
 
-int main(int argc, const char *argv[]) {
+void exec(string file);
+int main(int argc, const char* argv[])
+{
+    // 切换到test目录
+    filesystem::path filePath(__FILE__);
+    filesystem::path directory = filePath.parent_path();
+    chdir(directory.c_str());
+    chdir("../../test/input_example");
 
-    string file;
-    int number_of_colors = 9; //vvdefault 9: r0-r8
+    vector<string> files;
+    files = { "hw8/hw8test02" };
 
-    // file = argv[argc - 1];
-    file = "/home/keats/FudanCompilerH2025/HW10/test/input_example/hw8test02";
+    // hw10测试文件
+    // for (int i = 0; i <= 7; i++) {
+    //     char file_name[100];
+    //     sprintf(file_name, "hw10/hw10test%02d", i);
+    //     files.push_back(string(file_name));
+    // }
 
-    // boilerplate output filenames (used throughout the compiler pipeline)
+    // hw8测试文件
+    // for (int i = 0; i <= 12; i++) {
+    //     char file_name[100];
+    //     sprintf(file_name, "hw8/hw8test%02d", i);
+    //     files.push_back(string(file_name));
+    // }
+
+    for (auto file : files) {
+        cout << " >" << file << endl;
+        exec(file);
+    }
+}
+
+void exec(string file)
+{
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
-    string file_quad_ssa_opt = file + ".4-ssa-opt.quad";
-    string file_quad_ssa_opt_xml = file + ".4-ssa-opt-xml.quad";
+    string file_quad_ssa = file + ".4-ssa.txt";
+    string file_quad_ssa_opt = file + ".4-zopt.txt";
 
-    cout << "Reading Quad from xml: " << file_quad_ssa_xml << endl;
-    quad::QuadProgram *x3 = xml2quad(file_quad_ssa_xml.c_str());
+    cout << "读取quad: " << file_quad_ssa_xml << endl;
+    quad::QuadProgram* x3 = xml2quad(file_quad_ssa_xml.c_str());
     if (x3 == nullptr) {
         cerr << "Error reading Quad from xml: " << file_quad_ssa_xml << endl;
-        return EXIT_FAILURE;
+        exit(1);
     }
 
-    QuadProgram *x4 = optProg(x3); // using registers to prepare the quad for RPI
+    quad2file(x3, file_quad_ssa, true);
+    QuadProgram* x4 = optProg(x3);
 
-    cout << "Writing the optimized Quad Program to: " <<  file_quad_ssa_opt << endl;
-    quad2file(x4, file_quad_ssa_opt.c_str(), true); //write the prepared quad to a file
-
-    cout << "Writing the opt Program (XML) to: " <<  file_quad_ssa_opt_xml << endl;
-    quad2xml(x4, file_quad_ssa_opt_xml.c_str());
-    cout << "-----Done---" << endl;
-    return EXIT_SUCCESS;
+    quad2file(x4, file_quad_ssa_opt.c_str(), true);
+    cout << "-----Done----" << endl;
 }
