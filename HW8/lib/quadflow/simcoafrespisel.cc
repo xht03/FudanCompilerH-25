@@ -11,7 +11,7 @@
 #include "coloring.hh"
 
 bool isAnEdge(map<int, set<int>>& graph, int src, int dst) {
-    if (graph.find(src) == graph.end()) return false; //src not in the graph
+    if (graph.find(src) == graph.end()) return false;           //src not in the graph
     if (graph[src].find(dst) == graph[src].end()) return false; //dst not in the graph
     return true; //edge exists
 }
@@ -22,6 +22,7 @@ bool Coloring::simplify()
 {
     for (auto it = graph.begin(); it != graph.end(); it++) {
         int node = it->first;
+        // 如果结点度数 < k 且不是 movePairs 中的结点
         if (getNeighbors(node).size() < k && !isMove(node)) {
             simplifiedNodes.push(node);
             eraseNode(node);
@@ -42,7 +43,17 @@ bool Coloring::coalesce()
         if (isAnEdge(graph, v, u))
             return false;
 
-        // Briggs策略
+        /**
+         * Briggs 策略：
+         * 
+         * 1. 考虑两个节点 u 和 v 所有邻居的并集
+         * 2. 如果邻居并集中，度数 >= k 的节点数量小于 k，则合并
+         * 
+         * 为什么有效：
+         * 
+         * 1. 合并后，新节点的“高难度邻居”（度数>=k的节点）很少（少于k个）
+         * 2. 因此在后续着色时，总能找到可用的颜色（因为最多有 k-1 个高难度邻居可能限制颜色选择）。
+         */
         auto neighborsU = getNeighbors(u);
         auto neighborsV = getNeighbors(v);
         set<int> union_neighbors;
@@ -59,6 +70,7 @@ bool Coloring::coalesce()
         if (isMachineReg(v)) swap(u, v);
 
         // 移除该移动对
+        // 不仅是 (u,v)，还包括 (v,u)
         movePairs.erase(it);
         for (auto it = movePairs.begin(); it != movePairs.end(); it++) {
             if (it->first == v && it->second == u) {
@@ -98,8 +110,11 @@ bool Coloring::coalesce()
     return false;
 }
 
-// 冻结不能合并的移动指令
-// 如果有任何节点被冻结，返回 true
+/**
+ * 冻结不能合并的移动指令
+ * @note 用于处理：无法通过 simplify 或 coalesce 解决的僵局
+ * @return 如果有任何节点被冻结，返回 true
+ */
 bool Coloring::freeze()
 {
     if (!movePairs.empty()) {
@@ -119,8 +134,10 @@ bool Coloring::freeze()
     return false;
 }
 
-// 这是一个"软溢出"操作：我们只是暂时将节点从图中移除并加入简化节点栈，表现得像无事发生。
-// 真正的溢出发生在后续的 select&coloring 阶段
+/**
+ * 选择一个度数最大的结点，将其从图中移除并压入简化栈
+ * @note 这是一个"软溢出"操作，表现得像无事发生。真正的溢出发生在后续的 select & coloring 阶段
+ */
 bool Coloring::spill()
 {
     int max_degree = 0;
@@ -145,11 +162,15 @@ bool Coloring::spill()
     return false;
 }
 
-// 尝试为所有节点分配寄存器，并检查着色有效性
+/**
+ * 尝试为所有节点分配寄存器，并检查着色有效性
+ * @note select 是基于原始图进行的着色，而不是简化后的图
+ */
 bool Coloring::select()
 {
     graph = ig->graph;
     movePairs = ig->movePairs;
+
     // 为机器寄存器预着色
     for (auto& pair : ig->graph) {
         int node = pair.first;
