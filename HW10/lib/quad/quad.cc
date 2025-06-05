@@ -186,15 +186,14 @@ string print_extcall(QuadExtCall *call) {
     return use_str;
 }
 
-set<Temp*>* QuadStm::cloneTemps(const set<Temp*>* temps) const {
-    if (!temps) return nullptr;
-    
+set<Temp*>* QuadStm::cloneTemps(const set<Temp*>* temps) const
+{
+    if (!temps)
+        return nullptr;
+
     set<Temp*>* newTemps = new set<Temp*>();
-    for (auto temp : *temps) {
-        if (temp) {
-            newTemps->insert(new Temp(temp->num));
-        }
-    }
+    for (auto temp : *temps)
+        newTemps->insert(temp);
     return newTemps;
 }
 

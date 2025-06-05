@@ -62,12 +62,13 @@ class Temp_map {
     int next_label; // next label
     set<string> s_labels; //set of string labels
 
-    Temp_map() {
-      next_temp = 100; //start from 100
-      next_label = 100;
-      t_map.clear();
-      l_map.clear();
-      s_labels.clear();
+    Temp_map(int next_temp = 100, int next_label = 100)
+        : next_temp(next_temp)
+        , next_label(next_label)
+    {
+        t_map.clear();
+        l_map.clear();
+        s_labels.clear();
     }
 
     Temp* newtemp() {

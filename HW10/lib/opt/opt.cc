@@ -247,174 +247,290 @@ void Opt::calculateBT() {
 }
 
 // 将临时变量转为常量（若为常量），并在可能时移除指令和代码块
-void Opt::modifyFunc() {
+// void Opt::modifyFunc() {
 
-    vector<QuadBlock*>* new_blocks = new vector<QuadBlock*>();
+//     vector<QuadBlock*>* new_blocks = new vector<QuadBlock*>();
 
-    for (auto block : *func->quadblocklist) {
-        // 如果该块不可执行，则跳过
-        int label_num = block->entry_label->num;
-        if (!block_executable[label_num]) continue;
+//     for (auto block : *func->quadblocklist) {
+//         // 如果该块不可执行，则跳过
+//         int label_num = block->entry_label->num;
+//         if (!block_executable[label_num]) continue;
 
-        vector<Label*>* new_exit_labels = new vector<Label*>();
-        for (auto exit_label : *block->exit_labels) {
-            if (block_executable[exit_label->num]) {
-                new_exit_labels->push_back(exit_label);
-            }
-        }
+//         vector<Label*>* new_exit_labels = new vector<Label*>();
+//         for (auto exit_label : *block->exit_labels) {
+//             if (block_executable[exit_label->num]) {
+//                 new_exit_labels->push_back(exit_label);
+//             }
+//         }
 
-        vector<QuadStm*>* new_quadlist = new vector<QuadStm*>();
-        for (auto stm : *block->quadlist) {
-            // QuadMove
-            if (stm->kind == QuadKind::MOVE) {
-                QuadMove* move = static_cast<QuadMove*>(stm);
-                int dst_num = move->dst->temp->num;
-                RtValue dst_val = getRtValue(dst_num);
+//         vector<QuadStm*>* new_quadlist = new vector<QuadStm*>();
+//         for (auto stm : *block->quadlist) {
+//             // QuadMove
+//             if (stm->kind == QuadKind::MOVE) {
+//                 QuadMove* move = static_cast<QuadMove*>(stm);
+//                 int dst_num = move->dst->temp->num;
+//                 RtValue dst_val = getRtValue(dst_num);
 
-                // 如果 dst 是 ONE_VALUE，删除该指令
-                if (dst_val.getType() == ValueType::ONE_VALUE)
-                    continue;
-                else
-                    new_quadlist->push_back(move->clone());
-            }
+//                 // 如果 dst 是 ONE_VALUE，删除该指令
+//                 if (dst_val.getType() == ValueType::ONE_VALUE)
+//                     continue;
+//                 else
+//                     new_quadlist->push_back(move->clone());
+//             }
 
-            // QuadMoveBinop
-            else if (stm->kind == QuadKind::MOVE_BINOP) {
-                QuadMoveBinop* move_binop = static_cast<QuadMoveBinop*>(stm);
-                int dst_num = move_binop->dst->temp->num;
-                RtValue dst_val = getRtValue(dst_num);
+//             // QuadMoveBinop
+//             else if (stm->kind == QuadKind::MOVE_BINOP) {
+//                 QuadMoveBinop* move_binop = static_cast<QuadMoveBinop*>(stm);
+//                 int dst_num = move_binop->dst->temp->num;
+//                 RtValue dst_val = getRtValue(dst_num);
 
-                // 如果 dst 是 ONE_VALUE，删除该指令
-                if (dst_val.getType() == ValueType::ONE_VALUE)
-                    continue;
-                else
-                    new_quadlist->push_back(move_binop->clone());
-            }
+//                 // 如果 dst 是 ONE_VALUE，删除该指令
+//                 if (dst_val.getType() == ValueType::ONE_VALUE)
+//                     continue;
+//                 else
+//                     new_quadlist->push_back(move_binop->clone());
+//             }
 
-            // QuadMoveCall
-            else if (stm->kind == QuadKind::MOVE_CALL) {
-                QuadMoveCall* move_call = static_cast<QuadMoveCall*>(stm);
-                int dst_num = move_call->dst->temp->num;
-                RtValue dst_val = getRtValue(dst_num);
+//             // QuadMoveCall
+//             else if (stm->kind == QuadKind::MOVE_CALL) {
+//                 QuadMoveCall* move_call = static_cast<QuadMoveCall*>(stm);
+//                 int dst_num = move_call->dst->temp->num;
+//                 RtValue dst_val = getRtValue(dst_num);
 
-                // 如果 dst 是 ONE_VALUE，删除该指令
-                if (dst_val.getType() == ValueType::ONE_VALUE)
-                    continue;
-                else
-                    new_quadlist->push_back(move_call->clone());
-            }
+//                 // 如果 dst 是 ONE_VALUE，删除该指令
+//                 if (dst_val.getType() == ValueType::ONE_VALUE)
+//                     continue;
+//                 else
+//                     new_quadlist->push_back(move_call->clone());
+//             }
 
-            // QuadMoveExtCall
-            else if (stm->kind == QuadKind::MOVE_EXTCALL) {
-                QuadMoveExtCall* move_extcall = static_cast<QuadMoveExtCall*>(stm);
-                int dst_num = move_extcall->dst->temp->num;
-                RtValue dst_val = getRtValue(dst_num);
+//             // QuadMoveExtCall
+//             else if (stm->kind == QuadKind::MOVE_EXTCALL) {
+//                 QuadMoveExtCall* move_extcall = static_cast<QuadMoveExtCall*>(stm);
+//                 int dst_num = move_extcall->dst->temp->num;
+//                 RtValue dst_val = getRtValue(dst_num);
 
-                // 如果 dst 是 ONE_VALUE，删除该指令
-                if (dst_val.getType() == ValueType::ONE_VALUE)
-                    continue;
-                else
-                    new_quadlist->push_back(move_extcall->clone());
-            }
+//                 // 如果 dst 是 ONE_VALUE，删除该指令
+//                 if (dst_val.getType() == ValueType::ONE_VALUE)
+//                     continue;
+//                 else
+//                     new_quadlist->push_back(move_extcall->clone());
+//             }
 
-            // QuadCJump
-            else if (stm->kind == QuadKind::CJUMP) {
-                QuadCJump* cjump = static_cast<QuadCJump*>(stm);
-                RtValue left_val = getQuadTermRtValue(cjump->left);
-                RtValue right_val = getQuadTermRtValue(cjump->right);
+//             // QuadCJump
+//             else if (stm->kind == QuadKind::CJUMP) {
+//                 QuadCJump* cjump = static_cast<QuadCJump*>(stm);
+//                 RtValue left_val = getQuadTermRtValue(cjump->left);
+//                 RtValue right_val = getQuadTermRtValue(cjump->right);
 
-                if (left_val.getType() == ValueType::ONE_VALUE && right_val.getType() == ValueType::ONE_VALUE) {
-                    int left_int = left_val.getIntValue();
-                    int right_int = right_val.getIntValue();
-                    bool condition_met = false;
+//                 if (left_val.getType() == ValueType::ONE_VALUE && right_val.getType() == ValueType::ONE_VALUE) {
+//                     int left_int = left_val.getIntValue();
+//                     int right_int = right_val.getIntValue();
+//                     bool condition_met = false;
 
-                    if (cjump->relop == "==") {
-                        condition_met = (left_int == right_int);
-                    } else if (cjump->relop == "!=") {
-                        condition_met = (left_int != right_int);
-                    } else if (cjump->relop == "<") {
-                        condition_met = (left_int < right_int);
-                    } else if (cjump->relop == "<=") {
-                        condition_met = (left_int <= right_int);
-                    } else if (cjump->relop == ">") {
-                        condition_met = (left_int > right_int);
-                    } else if (cjump->relop == ">=") {
-                        condition_met = (left_int >= right_int);
-                    }
+//                     if (cjump->relop == "==") {
+//                         condition_met = (left_int == right_int);
+//                     } else if (cjump->relop == "!=") {
+//                         condition_met = (left_int != right_int);
+//                     } else if (cjump->relop == "<") {
+//                         condition_met = (left_int < right_int);
+//                     } else if (cjump->relop == "<=") {
+//                         condition_met = (left_int <= right_int);
+//                     } else if (cjump->relop == ">") {
+//                         condition_met = (left_int > right_int);
+//                     } else if (cjump->relop == ">=") {
+//                         condition_met = (left_int >= right_int);
+//                     }
 
-                    // 如果条件满足，替换为 JUMP 到 t，否则替换为 JUMP 到 f
-                    if (condition_met) {
-                        new_quadlist->push_back(new QuadJump(cjump->node, cjump->t, nullptr, nullptr));
-                        // 从 exit_labels 中移除 f
-                        for (auto it = new_exit_labels->begin(); it != new_exit_labels->end();it++) {
-                            if ((*it)->num == cjump->f->num) {
-                                it = new_exit_labels->erase(it);
-                                break;
-                            }
-                        }
-                    } else {
-                        new_quadlist->push_back(new QuadJump(cjump->node, cjump->f, nullptr, nullptr));
-                        // 从 exit_labels 中移除 t
-                        for (auto it = new_exit_labels->begin(); it != new_exit_labels->end(); it++) {
-                            if ((*it)->num == cjump->t->num) {
-                                it = new_exit_labels->erase(it);
-                                break;
-                            }
-                        }
-                    }
-                }
-                else new_quadlist->push_back(cjump->clone());
-            }
+//                     // 如果条件满足，替换为 JUMP 到 t，否则替换为 JUMP 到 f
+//                     if (condition_met) {
+//                         new_quadlist->push_back(new QuadJump(cjump->node, cjump->t, nullptr, nullptr));
+//                         // 从 exit_labels 中移除 f
+//                         for (auto it = new_exit_labels->begin(); it != new_exit_labels->end();it++) {
+//                             if ((*it)->num == cjump->f->num) {
+//                                 it = new_exit_labels->erase(it);
+//                                 break;
+//                             }
+//                         }
+//                     } else {
+//                         new_quadlist->push_back(new QuadJump(cjump->node, cjump->f, nullptr, nullptr));
+//                         // 从 exit_labels 中移除 t
+//                         for (auto it = new_exit_labels->begin(); it != new_exit_labels->end(); it++) {
+//                             if ((*it)->num == cjump->t->num) {
+//                                 it = new_exit_labels->erase(it);
+//                                 break;
+//                             }
+//                         }
+//                     }
+//                 }
+//                 else new_quadlist->push_back(cjump->clone());
+//             }
 
-            // QuadPhi
-            else if (stm->kind == QuadKind::PHI) {
-                QuadPhi* phi = static_cast<QuadPhi*>(stm);
-                // 如果 phi 的 dst 是 ONE_VALUE，删除该指令
-                if (temp_value[phi->temp->temp->num].getType() == ValueType::ONE_VALUE)
-                    continue;
-                // 如果 phi 的 dst 是 MANY_VALUES
-                else if (temp_value[phi->temp->temp->num].getType() == ValueType::MANY_VALUES) {
-                    for (auto& arg : *phi->args) {
-                        int src_num = arg.first->num;
-                        RtValue src_val = getRtValue(src_num);
-                        int src_label = arg.second->num;
-                        QuadBlock* src_block = label2block[arg.second->num];
+//             // QuadPhi
+//             else if (stm->kind == QuadKind::PHI) {
+//                 QuadPhi* phi = static_cast<QuadPhi*>(stm);
+//                 // 如果 phi 的 dst 是 ONE_VALUE，删除该指令
+//                 if (temp_value[phi->temp->temp->num].getType() == ValueType::ONE_VALUE)
+//                     continue;
+//                 // 如果 phi 的 dst 是 MANY_VALUES
+//                 else if (temp_value[phi->temp->temp->num].getType() == ValueType::MANY_VALUES) {
+//                     for (auto& arg : *phi->args) {
+//                         int src_num = arg.first->num;
+//                         RtValue src_val = getRtValue(src_num);
+//                         int src_label = arg.second->num;
+//                         QuadBlock* src_block = label2block[arg.second->num];
                         
-                        // 如果来源是 ONE_VALUE
-                        if (src_val.getType() == ValueType::ONE_VALUE) {
-                            // 在 src 块末尾添加 move 指令
-                            Temp* new_temp = new Temp(func->last_temp_num++);
-                            auto new_def = new set<Temp*>();
-                            new_def->insert(new_temp);
-                            QuadMove* new_move = new QuadMove(nullptr, 
-                                                              new TempExp(Type::INT, new_temp), 
-                                                              new QuadTerm(src_val.getIntValue()), 
-                                                              new_def,
-                                                              new set<Temp*>());
-                            src_block->quadlist->push_back(new_move);
-                            // 更新 phi->args
-                            stm->renameUse(arg.first, new_temp);
-                        }
-                    }
-                    new_quadlist->push_back(phi->clone());
-                } 
-                // 如果是 NO_VALUE，暂不处理
-                else {
-                    new_quadlist->push_back(phi->clone());
+//                         // 如果来源是 ONE_VALUE
+//                         if (src_val.getType() == ValueType::ONE_VALUE) {
+//                             // 在 src 块末尾添加 move 指令
+//                             Temp* new_temp = new Temp(func->last_temp_num++);
+//                             auto new_def = new set<Temp*>();
+//                             new_def->insert(new_temp);
+//                             QuadMove* new_move = new QuadMove(nullptr, 
+//                                                               new TempExp(Type::INT, new_temp), 
+//                                                               new QuadTerm(src_val.getIntValue()), 
+//                                                               new_def,
+//                                                               new set<Temp*>());
+//                             src_block->quadlist->push_back(new_move);
+//                             // 更新 phi->args
+//                             stm->renameUse(arg.first, new_temp);
+//                         }
+//                     }
+//                     new_quadlist->push_back(phi->clone());
+//                 } 
+//                 // 如果是 NO_VALUE，暂不处理
+//                 else {
+//                     new_quadlist->push_back(phi->clone());
+//                 }
+//             }
+
+//             // 对于其他类型的指令，直接克隆并添加到新的 quadlist
+//             else {
+//                 new_quadlist->push_back(static_cast<QuadStm*>(stm->clone()));
+//             }
+//         }
+
+//         QuadBlock* new_block = new QuadBlock(block->node, new_quadlist, block->entry_label, new_exit_labels);
+//         new_blocks->push_back(new_block);
+//     }
+
+//     func->quadblocklist = new_blocks;
+// }
+
+void Opt::modifyFunc()
+{
+modifyFunc:
+    Temp_map temp_map(func->last_temp_num + 1, func->last_label_num + 1);
+
+    auto& blocks = *func->quadblocklist;
+    for (auto blockIt = blocks.begin(); blockIt != blocks.end(); blockIt++) {
+        auto block = *blockIt;
+
+        // 移除不可达块
+        if (!block_executable[block->entry_label->num]) {
+            blockIt = blocks.erase(blockIt);
+            goto modifyFunc;
+        }
+
+        auto& stmts = *block->quadlist;
+        for (auto stmIt = stmts.begin(); stmIt != stmts.end(); stmIt++) {
+            auto stm = *stmIt;
+
+            // 语句->赋值
+            // 如果目标变量是单值，则删除该语句
+            if (stm->kind == QuadKind::MOVE) {
+                auto move = static_cast<QuadMove*>(stm);
+                if (getRtValue(move->dst->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
                 }
             }
 
-            // 对于其他类型的指令，直接克隆并添加到新的 quadlist
-            else {
-                new_quadlist->push_back(static_cast<QuadStm*>(stm->clone()));
+            // 语句->二元操作赋值
+            // 如果目标变量是单值，则删除该语句
+            else if (stm->kind == QuadKind::MOVE_BINOP) {
+                auto move_binop = static_cast<QuadMoveBinop*>(stm);
+                if (getRtValue(move_binop->dst->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
+                }
+            }
+
+            // 语句->Phi函数
+            // 如果目标变量是单值，则删除该语句
+            // 如果参数有单值, 则在前继块添加变量, 并重命名
+            else if (stm->kind == QuadKind::PHI) {
+                auto phi = static_cast<QuadPhi*>(stm);
+                if (getRtValue(phi->temp->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
+                }
+
+                for (auto& arg : *phi->args) {
+                    auto temp = arg.first;
+                    auto label = arg.second;
+                    auto rtValue = getRtValue(temp->num);
+                    // 单值参数需要在前继块添加变量, 并重命名
+                    if (rtValue.getType() == ValueType::ONE_VALUE) {
+                        auto newTemp = temp_map.newtemp();
+                        int value = rtValue.getIntValue();
+                        auto preBlock = label2block[label->num];
+                        preBlock->quadlist->insert(preBlock->quadlist->end() - 1,
+                            new QuadMove(nullptr, new TempExp(Type::INT, newTemp), new QuadTerm(value),
+                                new set<Temp*> { newTemp }, new set<Temp*> {}));
+                        stm->renameUse(temp, newTemp);
+                    }
+                }
+            }
+
+            // 如果有使用的单值变量，则将其替换为常数
+            for (auto useTemp : *stm->cloneTemps(stm->use)) {
+                auto rtValue = getRtValue(useTemp->num);
+                if (rtValue.getType() == ValueType::ONE_VALUE) {
+                    int value = rtValue.getIntValue();
+                    stm->constantUse(useTemp, value);
+                }
+            }
+
+            // 语句->条件跳转 (在常量替换后进行更新)
+            if (stm->kind == QuadKind::CJUMP) {
+                auto cjump = static_cast<QuadCJump*>(stm);
+                auto left = cjump->left, right = cjump->right;
+                // 如果可以左右都是常量, 则把CJump替换为Jump
+                if (left->kind == QuadTermKind::CONST && right->kind == QuadTermKind::CONST) {
+                    int left_value = get<int>(left->term);
+                    int right_value = get<int>(right->term);
+                    bool result = false;
+                    if (cjump->relop == "==")
+                        result = (left_value == right_value);
+                    else if (cjump->relop == "!=")
+                        result = (left_value != right_value);
+                    else if (cjump->relop == "<")
+                        result = (left_value < right_value);
+                    else if (cjump->relop == "<=")
+                        result = (left_value <= right_value);
+                    else if (cjump->relop == ">")
+                        result = (left_value > right_value);
+                    else if (cjump->relop == ">=")
+                        result = (left_value >= right_value);
+
+                    // 替换为Jump
+                    auto target_label = result ? cjump->t : cjump->f;
+                    stmIt = stmts.erase(stmIt);
+                    stmts.push_back(new QuadJump(nullptr, target_label, new set<Temp*> {}, new set<Temp*> {}));
+
+                    // 更新出口标签
+                    block->exit_labels->clear();
+                    block->exit_labels->push_back(target_label);
+                    goto modifyFunc;
+                }
             }
         }
-
-        QuadBlock* new_block = new QuadBlock(block->node, new_quadlist, block->entry_label, new_exit_labels);
-        new_blocks->push_back(new_block);
     }
 
-    func->quadblocklist = new_blocks;
+    // 更新标签和变量计数
+    func->last_label_num = temp_map.next_label - 1;
+    func->last_temp_num = temp_map.next_temp - 1;
 }
 
 QuadFuncDecl* Opt::optFunc() {
