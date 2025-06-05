@@ -94,6 +94,25 @@ public:
     void updateRtValue(int temp_num, int val);
 
     RtValue getQuadTermRtValue(QuadTerm* term);
+
+    bool setExecutable(int block_num, bool executable)
+    {
+        if (block_executable[block_num] != executable) {
+            block_executable[block_num] = executable;
+            return true;
+        } else
+            return false;
+    }
+
+    bool setRtValue(int temp_num, RtValue rtvalue)
+    {
+        if (temp_value.find(temp_num) == temp_value.end()) temp_value[temp_num] = RtValue();
+        if (temp_value[temp_num] != rtvalue) {
+            temp_value[temp_num] = rtvalue;
+            return true;
+        } else
+            return false;
+    }
 };
 
 QuadProgram* optProg(QuadProgram* prog);
