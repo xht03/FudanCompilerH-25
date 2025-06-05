@@ -26,7 +26,7 @@ int main(int argc, const char* argv[])
     chdir("../../test/input_example");
 
     vector<string> files;
-    files = { "hw8/hw8test02" };
+    files = { "hw8/hw8test03" };
 
     // hw10测试文件
     // for (int i = 0; i <= 7; i++) {

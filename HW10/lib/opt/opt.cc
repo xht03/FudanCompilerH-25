@@ -363,44 +363,45 @@ void Opt::modifyFunc() {
                         }
                     }
                 }
-
-                // QuadPhi
-                else if (stm->kind == QuadKind::PHI) {
-                    QuadPhi* phi = static_cast<QuadPhi*>(stm);
-                    // 如果 phi 的 dst 是 ONE_VALUE，删除该指令
-                    if (temp_value[phi->temp->temp->num].getType() == ValueType::ONE_VALUE)
-                        continue;
-                    // 如果 phi 的 dst 是 MANY_VALUES
-                    else if (temp_value[phi->temp->temp->num].getType() == ValueType::MANY_VALUES) {
-                        for (auto& arg : *phi->args) {
-                            int src_num = arg.first->num;
-                            RtValue src_val = getRtValue(src_num);
-                            QuadBlock* src_block = label2block[arg.second->num];
-
-                            // 如果来源是 ONE_VALUE
-                            if (src_val.getType() == ValueType::ONE_VALUE) {
-                                // 在 src 块末尾添加 move 指令
-                                Temp* new_temp = new Temp(func->last_temp_num++);
-                                auto new_def = new set<Temp*>();
-                                new_def->insert(new_temp);
-                                QuadMove* new_move = new QuadMove(nullptr, 
-                                                                  new TempExp(Type::INT, new_temp), 
-                                                                  new QuadTerm(src_val.getIntValue()), 
-                                                                  new_def,
-                                                                  new set<Temp*>());
-                                src_block->quadlist->push_back(new_move);
-                                // 更新 phi->args
-                                arg.first = new_temp;
-                            }
-                        }
-                    } 
-                    // 如果是 NO_VALUE，暂不处理
-                    else {
-                        new_quadlist->push_back(phi->clone());
-                    }
-                }
-
                 else new_quadlist->push_back(cjump->clone());
+            }
+
+            // QuadPhi
+            else if (stm->kind == QuadKind::PHI) {
+                QuadPhi* phi = static_cast<QuadPhi*>(stm);
+                // 如果 phi 的 dst 是 ONE_VALUE，删除该指令
+                if (temp_value[phi->temp->temp->num].getType() == ValueType::ONE_VALUE)
+                    continue;
+                // 如果 phi 的 dst 是 MANY_VALUES
+                else if (temp_value[phi->temp->temp->num].getType() == ValueType::MANY_VALUES) {
+                    for (auto& arg : *phi->args) {
+                        int src_num = arg.first->num;
+                        RtValue src_val = getRtValue(src_num);
+                        int src_label = arg.second->num;
+                        QuadBlock* src_block = label2block[arg.second->num];
+                        
+                        // 如果来源是 ONE_VALUE
+                        if (src_val.getType() == ValueType::ONE_VALUE) {
+                            // 在 src 块末尾添加 move 指令
+                            Temp* new_temp = new Temp(func->last_temp_num++);
+                            auto new_def = new set<Temp*>();
+                            new_def->insert(new_temp);
+                            QuadMove* new_move = new QuadMove(nullptr, 
+                                                              new TempExp(Type::INT, new_temp), 
+                                                              new QuadTerm(src_val.getIntValue()), 
+                                                              new_def,
+                                                              new set<Temp*>());
+                            src_block->quadlist->push_back(new_move);
+                            // 更新 phi->args
+                            stm->renameUse(arg.first, new_temp);
+                        }
+                    }
+                    new_quadlist->push_back(phi->clone());
+                } 
+                // 如果是 NO_VALUE，暂不处理
+                else {
+                    new_quadlist->push_back(phi->clone());
+                }
             }
 
             // 对于其他类型的指令，直接克隆并添加到新的 quadlist
