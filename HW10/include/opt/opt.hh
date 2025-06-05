@@ -27,6 +27,20 @@ public:
     RtValue(int value) : vt(ValueType::ONE_VALUE), value(value) {}  //if int, then one value
     ValueType getType() {return vt;}
     int getIntValue() {return value;}
+
+    bool operator==(const RtValue& rhs) const {
+        if (vt == ValueType::ONE_VALUE) {
+            return vt == rhs.vt && value == rhs.value;
+        }
+        else return vt == rhs.vt; // NO_VALUE or MANY_VALUES are equal if their types are the same
+    }
+
+    bool operator!=(const RtValue& rhs) const {
+        if (vt == ValueType::ONE_VALUE) {
+            return vt != rhs.vt || value != rhs.value;
+        }
+        else return vt != rhs.vt; // NO_VALUE or MANY_VALUES are not equal if their types are different
+    }
 };
 
 class Opt {
@@ -77,9 +91,9 @@ public:
         }
     }
 
-    void Opt::updateRtValue(int temp_num, int val);
+    void updateRtValue(int temp_num, int val);
 
-    RtValue Opt::getQuadTermRtValue(QuadTerm* term);
+    RtValue getQuadTermRtValue(QuadTerm* term);
 };
 
 QuadProgram* optProg(QuadProgram* prog);

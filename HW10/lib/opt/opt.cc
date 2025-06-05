@@ -34,7 +34,7 @@ RtValue Opt::getQuadTermRtValue(QuadTerm* term) {
         return RtValue(term->get_const());
     } else if (term->kind == QuadTermKind::TEMP) {
         int temp_num = term->get_temp()->temp->num;
-        RtValue rt_value = getRtValue(temp_num);
+        return getRtValue(temp_num);
     } else {
         return RtValue(ValueType::MANY_VALUES); // 对于 NAME 或其他类型，默认 MANY_VALUES
     }
