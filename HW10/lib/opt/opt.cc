@@ -41,7 +41,6 @@ RtValue Opt::getQuadTermRtValue(QuadTerm* term) {
 }
 
 void Opt::calculateBT() {
-
     // 所有块初始化为不可达
     for (auto& block : *func->quadblocklist) {
         int label_num = block->entry_label->num;
@@ -58,6 +57,10 @@ void Opt::calculateBT() {
     // 起始块 B1 设为可执行
     int B1 = func->quadblocklist->front()->entry_label->num;
     block_executable[B1] = true;
+
+calculateBT:
+
+    bool IsChanged = false;
 
     queue<int> block_queue;
     block_queue.push(B1);
@@ -144,10 +147,10 @@ void Opt::calculateBT() {
                     if (!block_executable[src_label]) 
                         continue;
 
-                    if (src_val.getType() == ValueType::NO_VALUE)
-                        continue;
+                    // if (src_val.getType() == ValueType::NO_VALUE)
+                    //     continue;
                     
-                    if (src_val.getType() == ValueType::MANY_VALUES) {
+                    if (src_val.getType() == ValueType::MANY_VALUES || src_val.getType() == ValueType::NO_VALUE) {
                         has_many_values = true;
                         break; // 如果有一个 MANY_VALUES，就直接跳出
                     }
@@ -242,8 +245,14 @@ void Opt::calculateBT() {
                 int exit_label_num = exit_label->num;
                 block_queue.push(exit_label_num);
             }
+            // 标记为已改变
+            IsChanged = true;
         }
     }
+
+    // 如果有变化，继续计算
+    if (IsChanged) 
+        goto calculateBT;
 }
 
 // 将临时变量转为常量（若为常量），并在可能时移除指令和代码块
