@@ -1,0 +1,43 @@
+<program kind="PROGRAM">
+    <funcdecl kind="FUNCDECL" name="_^main^_^main" last_label_num="115" last_temp_num="101">
+        <block kind="BLOCK" entry="115">
+            <label kind="LABEL" name="115"/>
+            <move kind="MOVE" dst="101" temp_type="INT">
+                <src kind="CONST" value="19"/>
+                <def>
+                    <temp id="101"/>
+                </def>
+            </move>
+            <label kind="LABEL" name="100"/>
+            <cjump kind="CJUMP" relop="!=" true="112" false="101">
+                <left kind="CONST" value="1"/>
+                <right kind="CONST" value="0"/>
+            </cjump>
+            <label kind="LABEL" name="112"/>
+            <jump kind="JUMP" target="100"/>
+            <label kind="LABEL" name="102"/>
+            <cjump kind="CJUMP" relop="!=" true="109" false="103">
+                <left kind="CONST" value="2"/>
+                <right kind="CONST" value="0"/>
+            </cjump>
+            <label kind="LABEL" name="109"/>
+            <jump kind="JUMP" target="103"/>
+            <label kind="LABEL" name="104"/>
+            <cjump kind="CJUMP" relop="!=" true="106" false="105">
+                <left kind="CONST" value="3"/>
+                <right kind="CONST" value="0"/>
+            </cjump>
+            <label kind="LABEL" name="106"/>
+            <jump kind="JUMP" target="104"/>
+            <jump kind="JUMP" target="104"/>
+            <label kind="LABEL" name="105"/>
+            <jump kind="JUMP" target="102"/>
+            <label kind="LABEL" name="103"/>
+            <jump kind="JUMP" target="100"/>
+            <label kind="LABEL" name="101"/>
+            <return kind="RETURN">
+                <value kind="CONST" value="0"/>
+            </return>
+        </block>
+    </funcdecl>
+</program>

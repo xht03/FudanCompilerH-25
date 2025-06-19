@@ -1,0 +1,14 @@
+Function _^main^_^main() last_label=100 last_temp=106:
+  Block: Entry Label: L100
+    Exit labels: 
+    LABEL L100; def: use: 
+    MOVE t0:INT <- Const:4; def: 0 use: 
+    MOVE_EXTCALL t0:PTR <- malloc(t0:INT); def: 0 1 2 3 use: 0 
+    MOVE t10000:PTR <- t0:PTR; def: 10000 use: 0 
+    MOVE_BINOP t10300:PTR <- (+, t10000:PTR, Const:0); def: 10300 use: 10000 
+    MOVE t106:INT <- Const:2; def: 106 use: 
+    STORE t106:INT -> Mem(t10300:PTR); def: use: 106 10300 
+    MOVE_BINOP t10400:PTR <- (+, t10000:PTR, Const:0); def: 10400 use: 10000 
+    LOAD t10500:INT <- Mem(t10400:PTR); def: 10500 use: 10400 
+    MOVE t0:INT <- t10500:INT; def: 0 use: 10500 
+    RETURN t0:INT; def: use: 0 

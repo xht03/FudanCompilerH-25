@@ -32,7 +32,7 @@ int main(int argc, const char *argv[]) {
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
     string file_quad_ssa = file + ".4-prepared.txt";
     string file_quad_color_xml = color_dir + file + ".4-xml.clr";
-    string file_rpi = file + ".my.s";
+    string file_rpi = file + ".s";
 
     cout << "读取quad: " << file_quad_prepared_xml << endl;
     quad::QuadProgram* x3 = xml2quad(file_quad_prepared_xml.c_str());

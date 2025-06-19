@@ -1,0 +1,34 @@
+<program kind="PROGRAM">
+    <funcdecl kind="FUNCDECL" name="_^main^_^main" last_label_num="105" last_temp_num="101">
+        <block kind="BLOCK" entry="105">
+            <exits>
+                <exit label="102"/>
+            </exits>
+            <label kind="LABEL" name="105"/>
+            <jump kind="JUMP" target="102"/>
+        </block>
+        <block kind="BLOCK" entry="102">
+            <exits>
+                <exit label="103"/>
+            </exits>
+            <label kind="LABEL" name="102"/>
+            <jump kind="JUMP" target="103"/>
+        </block>
+        <block kind="BLOCK" entry="103">
+            <label kind="LABEL" name="103"/>
+            <movebinop kind="MOVE_BINOP" dst="10001" temp_type="INT" op="*">
+                <left kind="CONST" value="10"/>
+                <right kind="TEMP" id="101" type="INT"/>
+                <def>
+                    <temp id="10001"/>
+                </def>
+            </movebinop>
+            <return kind="RETURN">
+                <value kind="TEMP" id="10001" type="INT"/>
+                <use>
+                    <temp id="10001"/>
+                </use>
+            </return>
+        </block>
+    </funcdecl>
+</program>

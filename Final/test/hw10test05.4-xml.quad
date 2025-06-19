@@ -1,0 +1,59 @@
+<program kind="PROGRAM">
+    <funcdecl kind="FUNCDECL" name="_^main^_^main" last_label_num="100" last_temp_num="105">
+        <block kind="BLOCK" entry="100">
+            <label kind="LABEL" name="100"/>
+            <moveextcall kind="MOVE_EXTCALL" dst="100" temp_type="INT">
+                <extcall kind="EXTCALL" name="getint"/>
+                <def>
+                    <temp id="100"/>
+                </def>
+            </moveextcall>
+            <movebinop kind="MOVE_BINOP" dst="101" temp_type="INT" op="+">
+                <left kind="TEMP" id="100" type="INT"/>
+                <right kind="CONST" value="1"/>
+                <def>
+                    <temp id="101"/>
+                </def>
+                <use>
+                    <temp id="100"/>
+                </use>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="102" temp_type="INT" op="+">
+                <left kind="TEMP" id="101" type="INT"/>
+                <right kind="CONST" value="1"/>
+                <def>
+                    <temp id="102"/>
+                </def>
+                <use>
+                    <temp id="101"/>
+                </use>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="103" temp_type="INT" op="+">
+                <left kind="TEMP" id="102" type="INT"/>
+                <right kind="CONST" value="1"/>
+                <def>
+                    <temp id="103"/>
+                </def>
+                <use>
+                    <temp id="102"/>
+                </use>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="104" temp_type="INT" op="+">
+                <left kind="TEMP" id="103" type="INT"/>
+                <right kind="CONST" value="1"/>
+                <def>
+                    <temp id="104"/>
+                </def>
+                <use>
+                    <temp id="103"/>
+                </use>
+            </movebinop>
+            <return kind="RETURN">
+                <value kind="TEMP" id="104" type="INT"/>
+                <use>
+                    <temp id="104"/>
+                </use>
+            </return>
+        </block>
+    </funcdecl>
+</program>

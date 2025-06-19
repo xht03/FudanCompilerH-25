@@ -5,18 +5,15 @@
 
 using namespace std;
 
-//this is the global configuration for the compiler
-//mostly for the sizes of the data types
-//and the alignment of the memory.
-//To use it, just include this header and call Compiler_Config::get("key"). 
-//No need to instantiate it.
+// 直接使用, 无需实例化
+// Compiler_Config::get("key")
 
 static const map<string, int> compiler_config = {
-        {"address_length", 4},  // Length of an address in bytes
-        {"memory_alignment", 4},  // memory alignment boundary at multiple of
-        {"int_length", 4},
-        {"float_length", 4},
-        {"double_length", 8}
+    { "memory_alignment", 4 }, // 内存对齐
+    { "address_length", 4 },   // 指针
+    { "int_length", 4 },       // 整型
+    { "float_length", 4 },     // 单精度浮点
+    { "double_length", 8 },    // 双精度浮点
 };
 
 class Compiler_Config {
@@ -25,8 +22,9 @@ public:
     Compiler_Config() = delete;
     Compiler_Config& operator=(const Compiler_Config&) = delete;
 
-    // Access values from the configuration
-    static int get(const std::string& key) {
+    // 获取配置信息
+    static int get(const std::string& key)
+    {
         if (compiler_config.find(key) == compiler_config.end()) {
             throw std::runtime_error("Key '" + key + "' not found in configuration");
         } else

@@ -1,7 +1,6 @@
     #define DEBUG
     #undef DEBUG
 
-    //This file defines all the AST node clone methods 
     #include <string>
     #include <vector>
     #include <variant>
@@ -54,7 +53,7 @@
         }
     }
 
-    string type_kind_string(TypeKind typekind) {
+    string type_kind_string(fdmj::TypeKind typekind) {
         switch (typekind) {
             case TypeKind::INT:
                 return "INT";

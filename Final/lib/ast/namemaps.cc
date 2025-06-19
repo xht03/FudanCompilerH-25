@@ -12,6 +12,7 @@
 using namespace std;
 using namespace fdmj;
 
+// 对外接口函数
 Name_Maps* makeNameMaps(Program* node)
 {
     if (node == nullptr) {

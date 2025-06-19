@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <variant>
-#include <assert.h>
 #include "tinyxml2.hh"
 #include "temp.hh"
 #include "treep.hh"

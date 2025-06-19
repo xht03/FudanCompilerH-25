@@ -1,0 +1,48 @@
+<program kind="PROGRAM">
+    <funcdecl kind="FUNCDECL" name="_^main^_^main" last_label_num="100" last_temp_num="103">
+        <block kind="BLOCK" entry="100">
+            <label kind="LABEL" name="100"/>
+            <movebinop kind="MOVE_BINOP" dst="101" temp_type="INT" op="-">
+                <left kind="CONST" value="0"/>
+                <right kind="CONST" value="1"/>
+                <def>
+                    <temp id="101"/>
+                </def>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="102" temp_type="INT" op="-">
+                <left kind="CONST" value="0"/>
+                <right kind="CONST" value="2"/>
+                <def>
+                    <temp id="102"/>
+                </def>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="103" temp_type="INT" op="*">
+                <left kind="TEMP" id="102" type="INT"/>
+                <right kind="CONST" value="3"/>
+                <def>
+                    <temp id="103"/>
+                </def>
+                <use>
+                    <temp id="102"/>
+                </use>
+            </movebinop>
+            <movebinop kind="MOVE_BINOP" dst="100" temp_type="INT" op="+">
+                <left kind="TEMP" id="101" type="INT"/>
+                <right kind="TEMP" id="103" type="INT"/>
+                <def>
+                    <temp id="100"/>
+                </def>
+                <use>
+                    <temp id="101"/>
+                    <temp id="103"/>
+                </use>
+            </movebinop>
+            <return kind="RETURN">
+                <value kind="TEMP" id="100" type="INT"/>
+                <use>
+                    <temp id="100"/>
+                </use>
+            </return>
+        </block>
+    </funcdecl>
+</program>

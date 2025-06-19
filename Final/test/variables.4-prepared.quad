@@ -1,0 +1,12 @@
+Function _^main^_^main() last_label=100 last_temp=156:
+  Block: Entry Label: L100
+    Exit labels: 
+    LABEL L100; def: use: 
+    MOVE t0:INT <- Const:111; def: 0 use: 
+    EXTCALL putint(t0:INT); def: 0 1 3 2 use: 0 
+    MOVE t0:INT <- Const:66; def: 0 use: 
+    EXTCALL putint(t0:INT); def: 0 1 2 3 use: 0 
+    MOVE t0:INT <- Const:4356; def: 0 use: 
+    EXTCALL putint(t0:INT); def: 3 2 1 0 use: 0 
+    MOVE t0:INT <- Const:37; def: 0 use: 
+    RETURN t0:INT; def: use: 0 

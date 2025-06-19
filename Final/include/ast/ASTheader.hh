@@ -53,8 +53,8 @@ namespace fdmj {
     class IntExp; //val
     class OpExp; //val
 
-//Program *fdmjParser(const std::string &filename, const bool debug);
-//Program *fdmjParser(std::ifstream &fp, const bool debug);
+// Program *fdmjParser(const std::string &filename, const bool debug);
+// Program *fdmjParser(std::ifstream &fp, const bool debug);
 
 class Pos {
   public:

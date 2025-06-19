@@ -50,11 +50,12 @@ run: $(MAIN)
 	$(call run_test,input_example)
 
 run-assem: $(MAIN)
-	cd $(CURDIR)/test && \
+	cd $(CURDIR)/test/input_example && \
 	for file in $$(ls .); do \
 		if [ "$${file#*.}" = "4-prepared-xml.quad" ]; then \
-			echo "Reading ${file}.4-prepared-xml.quad and ${file}.4-xml.clr"; \
-			arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -Wall -Wextra --static -o "$${file%%.*}" "$${file%%.*}.s" ../vendor/libsysy/libsysy32.s -lm; \
+			echo "Processing file: $$file"; \
+			echo "Reading $${file} and $${file%%.*}.4-xml.clr"; \
+			arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -Wall -Wextra --static -o "$${file%%.*}" "$${file%%.*}.s" ../../vendor/libsysy/libsysy32.s -lm; \
 			echo "Running the final assembly program........." ; \
 			qemu-arm -B 0x1000 $${file%%.*}; \
 		fi; \

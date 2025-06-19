@@ -1,0 +1,50 @@
+<program kind="PROGRAM">
+    <funcdecl kind="FUNCDECL" name="_^main^_^main" last_label_num="104" last_temp_num="103">
+        <block kind="BLOCK" entry="104">
+            <label kind="LABEL" name="104"/>
+            <move kind="MOVE" dst="101" temp_type="INT">
+                <src kind="CONST" value="19"/>
+                <def>
+                    <temp id="101"/>
+                </def>
+            </move>
+            <move kind="MOVE" dst="102" temp_type="INT">
+                <src kind="CONST" value="0"/>
+                <def>
+                    <temp id="102"/>
+                </def>
+            </move>
+            <cjump kind="CJUMP" relop="&gt;" true="102" false="103">
+                <left kind="TEMP" id="101" type="INT"/>
+                <right kind="CONST" value="1"/>
+                <use>
+                    <temp id="101"/>
+                </use>
+            </cjump>
+            <label kind="LABEL" name="102"/>
+            <move kind="MOVE" dst="102" temp_type="INT">
+                <src kind="CONST" value="1"/>
+                <def>
+                    <temp id="102"/>
+                </def>
+            </move>
+            <label kind="LABEL" name="103"/>
+            <extcall kind="EXTCALL" name="putch">
+                <args>
+                    <arg index="0">
+                        <value kind="TEMP" id="102" type="INT"/>
+                    </arg>
+                </args>
+                <use>
+                    <temp id="102"/>
+                </use>
+            </extcall>
+            <return kind="RETURN">
+                <value kind="TEMP" id="101" type="INT"/>
+                <use>
+                    <temp id="101"/>
+                </use>
+            </return>
+        </block>
+    </funcdecl>
+</program>

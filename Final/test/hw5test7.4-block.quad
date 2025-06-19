@@ -1,0 +1,25 @@
+Function _^main^_^main() last_label=100 last_temp=114:
+  Block: Entry Label: L100
+    Exit labels: 
+    LABEL L100; def: use: 
+    MOVE_EXTCALL t101:PTR <- malloc(Const:4); def: 101 use: 
+    STORE Const:0 -> Mem(t101:PTR); def: use: 101 
+    MOVE_EXTCALL t100:PTR <- malloc(Const:16); def: 100 use: 
+    MOVE_EXTCALL t102:PTR <- malloc(Const:4); def: 102 use: 
+    STORE Const:0 -> Mem(t102:PTR); def: use: 102 
+    MOVE_BINOP t109:PTR <- (+, t100:PTR, Const:0); def: 109 use: 100 
+    STORE t102:PTR -> Mem(t109:PTR); def: use: 102 109 
+    MOVE t103:INT <- Const:1; def: 103 use: 
+    MOVE_BINOP t110:PTR <- (+, t100:PTR, Const:4); def: 110 use: 100 
+    STORE t103:INT -> Mem(t110:PTR); def: use: 103 110 
+    MOVE_EXTCALL t104:PTR <- malloc(Const:16); def: 104 use: 
+    STORE Const:3 -> Mem(t104:PTR); def: use: 104 
+    MOVE_BINOP t111:PTR <- (+, t104:PTR, Const:4); def: 111 use: 104 
+    STORE Const:1 -> Mem(t111:PTR); def: use: 111 
+    MOVE_BINOP t112:PTR <- (+, t104:PTR, Const:8); def: 112 use: 104 
+    STORE Const:2 -> Mem(t112:PTR); def: use: 112 
+    MOVE_BINOP t113:PTR <- (+, t104:PTR, Const:12); def: 113 use: 104 
+    STORE Const:3 -> Mem(t113:PTR); def: use: 113 
+    MOVE_BINOP t114:PTR <- (+, t100:PTR, Const:12); def: 114 use: 100 
+    STORE t104:PTR -> Mem(t114:PTR); def: use: 104 114 
+    RETURN Const:1; def: use: 

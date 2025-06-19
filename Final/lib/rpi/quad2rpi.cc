@@ -215,6 +215,9 @@ string convert(QuadFuncDecl* func, DataFlowInfo *dfi, Color *color, int indent) 
                     result += string(indent, ' ') + "sub ";
                 else if (binop == "*")
                     result += string(indent, ' ') + "mul ";
+
+                string debug_left = term2str(moveBinopStm->left, color, true);
+                string debug_right = term2str(moveBinopStm->right, color, false);
                 
                 result += "r" + to_string(dstReg) + ", " + term2str(moveBinopStm->left, color, true) 
                     + ", " + term2str(moveBinopStm->right, color, false) + "\n";

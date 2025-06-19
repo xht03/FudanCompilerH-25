@@ -1,0 +1,48 @@
+Function _^main^_^main() last_label=110 last_temp=109:
+  Block: Entry Label: L110
+    Exit labels: L102 L103 
+    LABEL L110; def: use: 
+    MOVE t101:INT <- Const:1; def: 101 use: 
+    MOVE t102:INT <- Const:2; def: 102 use: 
+    MOVE_BINOP t103:INT <- (+, t101:INT, t102:INT); def: 103 use: 102 101 
+    MOVE t101:INT <- Const:1; def: 101 use: 
+    MOVE t102:INT <- Const:2; def: 102 use: 
+    MOVE_BINOP t103:INT <- (*, t101:INT, t102:INT); def: 103 use: 102 101 
+    MOVE t100:INT <- Const:1; def: 100 use: 
+    MOVE t100:INT <- Const:0; def: 100 use: 
+    MOVE_BINOP t100:INT <- (+, Const:0, Const:1); def: 100 use: 
+    CJUMP != Const:0 Const:1? L102 : L103; def: use: 
+  Block: Entry Label: L102
+    Exit labels: L104 
+    LABEL L102; def: use: 
+    JUMP L104; def: use: 
+  Block: Entry Label: L103
+    Exit labels: L104 
+    LABEL L103; def: use: 
+    JUMP L104; def: use: 
+  Block: Entry Label: L104
+    Exit labels: L105 
+    LABEL L104; def: use: 
+    JUMP L105; def: use: 
+  Block: Entry Label: L105
+    Exit labels: L107 L106 
+    LABEL L105; def: use: 
+    MOVE t105:INT <- Const:1; def: 105 use: 
+    MOVE t104:INT <- t101:INT; def: 104 use: 101 
+    MOVE t100:INT <- Const:3; def: 100 use: 
+    MOVE_BINOP t108:INT <- (*, t104:INT, t101:INT); def: 108 use: 101 104 
+    MOVE_BINOP t109:INT <- (+, t105:INT, t108:INT); def: 109 use: 105 108 
+    CJUMP != t109:INT Const:0? L107 : L106; def: use: 109 
+  Block: Entry Label: L107
+    Exit labels: L106 
+    LABEL L107; def: use: 
+    EXTCALL putint(t101:INT); def: use: 101 
+    EXTCALL putch(Const:10); def: use: 
+    JUMP L106; def: use: 
+  Block: Entry Label: L111
+    Exit labels: L105 
+    JUMP L105; def: use: 
+  Block: Entry Label: L106
+    Exit labels: 
+    LABEL L106; def: use: 
+    RETURN Const:9; def: use: 

@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 #include "quad.hh"
-#include "treep.hh"
 
 // 函数控制流信息
 class ControlFlowInfo {
@@ -71,7 +70,7 @@ public:
     quad::QuadFuncDecl* func; // 基本块化的四元式程序
 
     set<int> allVars;          // 变量集
-    map<int, tree::Type> varTypeMap; // 变量类型
+    map<int, Type> varTypeMap; // 变量类型
 
     map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* defs; // 变量定义: 变量->{<基本块, 语句>}
     map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* uses; // 变量使用: 变量->{<基本块, 语句>}

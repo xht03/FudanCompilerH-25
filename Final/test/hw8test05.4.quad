@@ -1,0 +1,22 @@
+Function _^main^_^main() last_label=100 last_temp=110:
+  Block: Entry Label: L100
+    Exit labels: 
+    LABEL L100; def: use: 
+    MOVE_EXTCALL t100:PTR <- malloc(Const:8); def: 100 use: 
+    MOVE t102:INT <- Const:2; def: 102 use: 
+    MOVE_BINOP t108:PTR <- (+, t100:PTR, Const:0); def: 108 use: 100 
+    STORE t102:INT -> Mem(t108:PTR); def: use: 102 108 
+    MOVE_BINOP t109:PTR <- (+, t100:PTR, Const:4); def: 109 use: 100 
+    STORE Name:C^m -> Mem(t109:PTR); def: use: 109 
+    MOVE_BINOP t110:PTR <- (+, t100:PTR, Const:4); def: 110 use: 100 
+    LOAD t104:PTR <- Mem(t110:PTR); def: 104 use: 110 
+    MOVE_CALL t101:INT <- m[t104:PTR] (t100:PTR); def: 101 use: 100 104 
+    EXTCALL putint(t101:INT); def: use: 101 
+    EXTCALL putch(Const:20); def: use: 
+    RETURN Const:9; def: use: 
+Function C^m(t100) last_label=100 last_temp=102:
+  Block: Entry Label: L100
+    LABEL L100; def: use: 
+    MOVE_BINOP t101:PTR <- (+, t100:PTR, Const:0); def: 101 use: 100 
+    LOAD t102:INT <- Mem(t101:PTR); def: 102 use: 101 
+    RETURN t102:INT; def: use: 102 

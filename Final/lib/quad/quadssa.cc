@@ -22,7 +22,6 @@ using namespace quad;
 static void deleteUnreachableBlocks(ControlFlowInfo* domInfo);
 static void placePhi(ControlFlowInfo* domInfo);
 static void renameVariables(ControlFlowInfo* domInfo);
-static void cleanupUnusedPhi(QuadFuncDecl* func);
 
 // 删除不可达基本块
 static void deleteUnreachableBlocks(ControlFlowInfo* domInfo) { domInfo->eliminateUnreachableBlocks(); }
