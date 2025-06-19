@@ -108,7 +108,7 @@ main$L115:
          b main$L113
 main$L117: 
          mov r0, #2
-r0, r6, r0
+         div r0, r6, r0
          mov r1, #2
          mul r0, r0, r1
          cmp r0, r6
