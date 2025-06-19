@@ -279,17 +279,14 @@ public:
             TempExp* temp = get<TempExp*>(src->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
         if (dst->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(dst->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -382,17 +379,14 @@ public:
             TempExp* temp = get<TempExp*>(left->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
         if (right->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(right->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -441,7 +435,6 @@ public:
             TempExp* temp = get<TempExp*>(obj_term->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
         for (auto& arg : *args) {
@@ -449,7 +442,6 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
-                    return;
                 }
             }
         }
@@ -506,7 +498,6 @@ public:
             TempExp* temp = get<TempExp*>(call->obj_term->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
         for (auto& arg : *call->args) {
@@ -514,11 +505,9 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
-                    return;
                 }
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -567,11 +556,9 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
-                    return;
                 }
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -618,11 +605,9 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
-                    return;
                 }
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -703,17 +688,14 @@ public:
             TempExp* temp = get<TempExp*>(left->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
         if (right->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(right->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override
@@ -762,10 +744,8 @@ public:
         for (auto& arg : *args) {
             if (arg.first == oldTemp) {
                 arg.first = newTemp;
-                return;
             }
         }
-        assert(false);
      }
     void constantUse(Temp* oldTemp, int value) override { }
 };
@@ -790,10 +770,8 @@ public:
             TempExp* temp = get<TempExp*>(value->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
-                return;
             }
         }
-        assert(false);
     }
 
     void constantUse(Temp* oldTemp, int value) override

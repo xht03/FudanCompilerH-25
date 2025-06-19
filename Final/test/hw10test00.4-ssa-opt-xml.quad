@@ -8,18 +8,8 @@
                     <temp id="10000"/>
                 </def>
             </moveextcall>
-            <movebinop kind="MOVE_BINOP" dst="10001" temp_type="INT" op="*">
-                <left kind="CONST" value="10"/>
-                <right kind="TEMP" id="101" type="INT"/>
-                <def>
-                    <temp id="10001"/>
-                </def>
-            </movebinop>
             <return kind="RETURN">
-                <value kind="TEMP" id="10001" type="INT"/>
-                <use>
-                    <temp id="10001"/>
-                </use>
+                <value kind="CONST" value="100"/>
             </return>
         </block>
     </funcdecl>

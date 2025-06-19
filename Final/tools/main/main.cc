@@ -68,8 +68,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    file = argv[argc - 1];
-    // file = "hw8test06";
+    // file = argv[argc - 1];
+    file = "hw10test00";
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast";
@@ -79,8 +79,11 @@ int main(int argc, const char* argv[])
 
     string file_quad = file + ".4.quad";
     string file_quad_xml = file + ".4-xml.quad";
+
     string file_quad_block = file + ".4-block.quad";
     string file_quad_ssa = file + ".4-ssa.quad";
+    string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
+
     string file_quad_ssa_opt_xml = file + ".4-ssa-opt-xml.quad";
 
     string file_quad_prepared = file + ".4-prepared.quad";
@@ -184,16 +187,25 @@ int main(int argc, const char* argv[])
 
     // ----------------------------------------------------------------
 
-    cout << "写入: " << file_quad_ssa_opt_xml << endl;
-    QuadProgram* x6 = optProg(x5);
-    quad2xml(x6, file_quad_ssa_opt_xml.c_str());
+    cout << "写入: " << file_quad_ssa_xml << endl;
+    quad2xml(x5, file_quad_ssa_xml.c_str());
+
+    cout << "读取: " << file_quad_ssa_xml << endl;
+    QuadProgram* x6 = xml2quad(file_quad_ssa_xml.c_str());
+
+    // ----------------------------------------------------------------
+
+    // cout << "写入: " << file_quad_ssa_opt_xml << endl;
+    // QuadProgram* x6 = optProg(x5);
+    // quad2xml(x6, file_quad_ssa_opt_xml.c_str());
 
     // ----------------------------------------------------------------
     
     int number_of_colors = 9;
 
-    cout << "写入: " << file_quad_prepared << endl;
-    QuadProgram* x7 = xml2quad(file_quad_ssa_opt_xml.c_str());
+    // cout << "写入: " << file_quad_prepared << endl;
+    // QuadProgram* x7 = xml2quad(file_quad_ssa_opt_xml.c_str());
+    QuadProgram* x7 = x6;
     QuadProgram* x8 = prepareRegAlloc(x7);
     quad2file(x8, file_quad_prepared.c_str(), true);
 

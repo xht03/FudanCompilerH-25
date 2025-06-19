@@ -6,9 +6,9 @@
             <Color node="1" color="1"/>
             <Color node="2" color="2"/>
             <Color node="3" color="3"/>
-            <Color node="103" color="0"/>
             <Color node="10000" color="0"/>
             <Color node="10001" color="0"/>
+            <Color node="10100" color="0"/>
         </Colors>
         <Spills/>
     </Coloring>

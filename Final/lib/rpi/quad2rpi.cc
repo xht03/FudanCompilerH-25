@@ -216,10 +216,10 @@ string convert(QuadFuncDecl* func, DataFlowInfo *dfi, Color *color, int indent) 
                 else if (binop == "*")
                     result += string(indent, ' ') + "mul ";
                 else if (binop == "/")
-                    result += string(indent, ' ') + "div ";
+                    result += string(indent, ' ') + "sdiv ";
 
-                string debug_left = term2str(moveBinopStm->left, color, true);
-                string debug_right = term2str(moveBinopStm->right, color, false);
+                // string debug_left = term2str(moveBinopStm->left, color, true);
+                // string debug_right = term2str(moveBinopStm->right, color, false);
                 
                 result += "r" + to_string(dstReg) + ", " + term2str(moveBinopStm->left, color, true) 
                     + ", " + term2str(moveBinopStm->right, color, false) + "\n";
