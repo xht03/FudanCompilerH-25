@@ -1,8 +1,0 @@
-Function _^main^_^main() last_label=100 last_temp=102:
-  Block: Entry Label: L100
-    Exit labels: 
-    LABEL L100; def: use: 
-    MOVE t100:INT <- Const:1; def: 100 use: 
-    EXTCALL putint(t100:INT); def: use: 100 
-    EXTCALL putch(Const:10); def: use: 
-    RETURN t100:INT; def: use: 100 

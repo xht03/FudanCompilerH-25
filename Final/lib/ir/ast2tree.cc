@@ -253,7 +253,7 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* arr_te
     int size = 0; // 计算数组大小
     if (type->arity && type->arity->val != 0)
         size = type->arity->val;
-    else if (holds_alternative<vector<IntExp*>*>(init))
+    if (holds_alternative<vector<IntExp*>*>(init))
         size = get<vector<IntExp*>*>(init)->size();
 
     // temp=malloc((size+1) * int_length)
@@ -530,6 +530,10 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
     auto L_while = temp_map.newlabel();
     auto L_end = temp_map.newlabel();
 
+    // 保存之前所在的while循环
+    auto old_L_while = cur_L_while;
+    auto old_L_end = cur_L_end;
+
     // 更新当前所在的while循环
     cur_L_while = L_while;
     cur_L_end = L_end;
@@ -542,6 +546,10 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
                 body.push_back(static_cast<tree::Stm*>(newNode));
         newNodes.clear();
     }
+
+    // 恢复之前所在的while循环
+    cur_L_while = old_L_while;
+    cur_L_end = old_L_end;
 
     auto sl = while_helper(temp_map, exp, body, L_while, temp_map.newlabel(), L_end);
     newNodes.push_back(new tree::Seq(sl));

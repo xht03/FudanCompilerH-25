@@ -68,8 +68,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    // file = argv[argc - 1];
-    file = "hw10test00";
+    file = argv[argc - 1];
+    // file = "hw10test00";
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast";
@@ -196,17 +196,16 @@ int main(int argc, const char* argv[])
     // ----------------------------------------------------------------
 
     // cout << "写入: " << file_quad_ssa_opt_xml << endl;
-    // QuadProgram* x6 = optProg(x5);
-    // quad2xml(x6, file_quad_ssa_opt_xml.c_str());
+    // QuadProgram* x7 = optProg(x6);
+    // quad2xml(x7, file_quad_ssa_opt_xml.c_str());
 
     // ----------------------------------------------------------------
     
     int number_of_colors = 9;
 
-    // cout << "写入: " << file_quad_prepared << endl;
-    // QuadProgram* x7 = xml2quad(file_quad_ssa_opt_xml.c_str());
-    QuadProgram* x7 = x6;
-    QuadProgram* x8 = prepareRegAlloc(x7);
+    cout << "写入: " << file_quad_prepared << endl;
+    // QuadProgram* x7_ = xml2quad(file_quad_ssa_opt_xml.c_str());
+    QuadProgram* x8 = prepareRegAlloc(x6);
     quad2file(x8, file_quad_prepared.c_str(), true);
 
     cout << "写入: " << file_quad_color_xml << endl;
